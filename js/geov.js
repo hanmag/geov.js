@@ -10,9 +10,9 @@ V.Globe = function (container, opts) {
 
     var imgDir = opts.imgDir || 'images/';
 
-    var camera, renderer, scene, controls;
+    var camera, renderer, scene, group, controls;
 
-    var sphere;
+    var sphere, clouds, stars;
 
     function init() {
 
@@ -22,32 +22,88 @@ V.Globe = function (container, opts) {
         // Earth params
         var radius = 0.5, segments = 32, rotation = 6;
 
+        // Earth texture
+        var mapTexture, bumpMapTexture, specularMapTexture, cloudsTexture, starsTexture;
+
         scene = new THREE.Scene();
 
-        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        group = new THREE.Group();
+        scene.add(group);
+
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1000);
         camera.position.z = 1.5;
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(width, height);
+        renderer.setClearColor(0x000000);
+        renderer.setPixelRatio(window.devicePixelRatio);
 
-        scene.add(new THREE.AmbientLight(0x333333));
+        scene.add(new THREE.AmbientLight(0x555555));
 
-        var light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 3, 5);
+        var light = new THREE.DirectionalLight(0xffffff, 0.6);
+        light.position.set(5, 3, 5).normalize();
         scene.add(light);
 
-        sphere = new THREE.Mesh(
-            new THREE.SphereGeometry(radius, segments, segments),
-            new THREE.MeshPhongMaterial({
-                map: THREE.ImageUtils.loadTexture(imgDir + '2_no_clouds_4k.jpg'),
-                bumpMap: THREE.ImageUtils.loadTexture(imgDir + 'elev_bump_4k.jpg'),
-                bumpScale: 0.005,
-                specularMap: THREE.ImageUtils.loadTexture(imgDir + 'water_4k.png'),
-                specular: new THREE.Color('grey')
-            })
-        );
-        sphere.rotation.y = rotation;
-        scene.add(sphere)
+        var createSphere = _.after(3, function () {
+            sphere = new THREE.Mesh(
+                new THREE.SphereGeometry(radius, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    map: mapTexture,
+                    bumpMap: bumpMapTexture,
+                    bumpScale: 0.005,
+                    specularMap: specularMapTexture,
+                    specular: new THREE.Color('grey'),
+                    shininess: 10
+                })
+            );
+            sphere.rotation.y = rotation;
+            group.add(sphere);
+        });
+
+        var createClouds = _.after(1, function () {
+            clouds = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.02, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    map: cloudsTexture,
+                    transparent: true
+                })
+            );
+            clouds.rotation.y = rotation;
+            group.add(clouds);
+        });
+
+        var createStars = _.after(1, function () {
+            stars = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 200, segments * 2, segments * 2),
+                new THREE.MeshBasicMaterial({
+                    map: starsTexture,
+                    side: THREE.BackSide
+                })
+            );
+            group.add(stars);
+        });
+
+        var loader = new THREE.TextureLoader();
+        loader.load(imgDir + '2_no_clouds_4k.jpg', function (texture) {
+            mapTexture = texture;
+            createSphere();
+        });
+        loader.load(imgDir + 'elev_bump_4k.jpg', function (texture) {
+            bumpMapTexture = texture;
+            createSphere();
+        });
+        loader.load(imgDir + 'water_4k.png', function (texture) {
+            specularMapTexture = texture;
+            createSphere();
+        });
+        loader.load(imgDir + 'fair_clouds_4k.png', function (texture) {
+            cloudsTexture = texture;
+            createClouds();
+        });
+        loader.load(imgDir + 'galaxy_starfield.png', function (texture) {
+            starsTexture = texture;
+            createStars();
+        });
 
         controls = new THREE.TrackballControls(camera);
 
@@ -55,9 +111,10 @@ V.Globe = function (container, opts) {
     }
 
     function render() {
+
         controls.update();
-        sphere.rotation.y += 0.0005;
-        //clouds.rotation.y += 0.0005;
+        if (clouds !== undefined)
+            clouds.rotation.y += 0.0002;
         renderer.render(scene, camera);
     }
 

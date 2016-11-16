@@ -23,7 +23,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	this.noRotate = false;
 	this.noZoom = false;
-	this.noPan = false;
+	this.noPan = true; //  can not Pan the globe, by wangjue
 
 	this.staticMoving = false;
 	this.dynamicDampingFactor = 0.2;
@@ -326,6 +326,10 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 			_state = STATE.PAN;
 
+		} else if ( event.keyCode === 32) {
+			// space key down: reset, by wangjue
+			
+			_this.reset();
 		}
 
 	}
