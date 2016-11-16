@@ -5,20 +5,30 @@
     <title>GeoV.js</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link rel="shortcut icon" href="images/favicon.ico" /> 
+    <link rel="shortcut icon" href="images/favicon.ico" />
 </head>
 
 <body>
     <div id="container"></div>
 
-    //-----------  scripts  ------------
+    //----------- scripts ------------
     <script type="text/javascript" src="third-party/Detector.js"></script>
     <script type="text/javascript" src="third-party/three.min.js"></script>
+    <script type="text/javascript" src="third-party/TrackballControls.js"></script>
 
     <script type="text/javascript" src="js/geov.js"></script>
 
     <script type="text/javascript">
-        if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+        if ( ! Detector.webgl ) {
+            Detector.addGetWebGLMessage();
+        }
+        else {
+            var container = document.getElementById('container');
+            var globe = new V.Globe(container);
+            console.log(globe);
+
+            globe.animate();
+        }
     </script>
 </body>
 
