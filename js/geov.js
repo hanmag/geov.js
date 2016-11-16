@@ -108,6 +108,14 @@ V.Globe = function (container, opts) {
         controls = new THREE.TrackballControls(camera);
 
         container.appendChild(renderer.domElement);
+
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize(event) {
+        camera.aspect = container.offsetWidth / container.offsetHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.offsetWidth, container.offsetHeight);
     }
 
     function render() {
