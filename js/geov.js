@@ -11,13 +11,19 @@ V.Globe = function (containerId, opts) {
         return;
     }
 
-    opts = opts || {};
+    opts = opts || {
+        imgDir: 'images/',
+        type: 'earth'
+    };
 
-    var imgDir = opts.imgDir || 'images/';
+    var imgDir = opts.imgDir;
 
     var container = document.getElementById(containerId);
 
-    var camera, renderer, scene, group, controls;
+    var camera, renderer = new THREE.WebGLRenderer(), scene = new THREE.Scene(), controls;
+
+    var earthMeshGroup = new THREE.Group();
+    earthMeshGroup.name = 'earthMeshGroup';
 
     var sphere, clouds, stars;
 
@@ -26,21 +32,15 @@ V.Globe = function (containerId, opts) {
         var width = container.offsetWidth || window.innerWidth,
             height = container.offsetHeight || window.innerHeight;
 
-        // Earth params
+        // Earth Params
         var radius = 0.5, segments = 32, rotation = 3;
 
-        // Earth texture
+        // Earth Mesh Textures
         var mapTexture, bumpMapTexture, specularMapTexture, cloudsTexture, starsTexture;
-
-        scene = new THREE.Scene();
-
-        group = new THREE.Group();
-        scene.add(group);
 
         camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
         camera.position.z = 1.5;
 
-        renderer = new THREE.WebGLRenderer();
         renderer.setSize(width, height);
         renderer.setClearColor(0x000000);
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -64,7 +64,7 @@ V.Globe = function (containerId, opts) {
                 })
             );
             sphere.rotation.y = rotation;
-            group.add(sphere);
+            earthMeshGroup.add(sphere);
         });
 
         var createClouds = _.after(1, function () {
@@ -76,7 +76,7 @@ V.Globe = function (containerId, opts) {
                 })
             );
             clouds.rotation.y = rotation;
-            group.add(clouds);
+            earthMeshGroup.add(clouds);
         });
 
         var createStars = _.after(1, function () {
@@ -87,7 +87,7 @@ V.Globe = function (containerId, opts) {
                     side: THREE.BackSide
                 })
             );
-            group.add(stars);
+            earthMeshGroup.add(stars);
         });
 
         var loader = new THREE.TextureLoader();
@@ -119,6 +119,9 @@ V.Globe = function (containerId, opts) {
 
         container.appendChild(renderer.domElement);
 
+        stats = new Stats();
+        container.appendChild(stats.dom);
+
         window.addEventListener('resize', onWindowResize, false);
         document.addEventListener('keydown', onKeyDown, false);
     }
@@ -134,6 +137,7 @@ V.Globe = function (containerId, opts) {
     }
 
     function render() {
+        applyOptions();
 
         controls.update();
         if (clouds !== undefined)
@@ -141,9 +145,41 @@ V.Globe = function (containerId, opts) {
         renderer.render(scene, camera);
     }
 
+    function applyOptions() {
+        setMeshGroup();
+    }
+
+    function setMeshGroup() {
+        var meshGroup;
+        switch (opts.type) {
+            case "earth":
+                meshGroup = earthMeshGroup;
+                break;
+            default:
+                console.log("Sorry, we are out of " + opts.type + ".");
+                return;
+        }
+
+        for (var i = 0; i < scene.children.length; i++) {
+            if (scene.children[i].name === meshGroup.name) {
+                return;
+            } else if (scene.children[i].Type !== 'Group') {
+                continue;
+            } else {
+                scene.children[i] = meshGroup;
+                return;
+            }
+        }
+
+        scene.add(meshGroup);
+    }
+
     function animate() {
         requestAnimationFrame(animate);
+
+        stats.begin();
         render();
+        stats.end();
     }
 
     init();
