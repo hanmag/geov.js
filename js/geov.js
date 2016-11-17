@@ -65,7 +65,7 @@ V.Globe = function (containerId, opts, callback) {
 
     var earthMeshGroup = new THREE.Group(), blackMeshGroup = new THREE.Group();
 
-    var sphere, clouds, stars;
+    var clouds;
 
     function init() {
 
@@ -87,7 +87,7 @@ V.Globe = function (containerId, opts, callback) {
         renderer.setPixelRatio(window.devicePixelRatio);
 
         var createEarthSphere = _.after(3, function () {
-            sphere = new THREE.Mesh(
+            var sphere = new THREE.Mesh(
                 new THREE.SphereGeometry(radius, segments, segments),
                 new THREE.MeshPhongMaterial({
                     map: mapTexture,
@@ -115,7 +115,7 @@ V.Globe = function (containerId, opts, callback) {
         });
 
         var createStars = _.after(1, function () {
-            stars = new THREE.Mesh(
+            var stars = new THREE.Mesh(
                 new THREE.SphereGeometry(radius * 100, segments * 2, segments * 2),
                 new THREE.MeshBasicMaterial({
                     map: starsTexture,
@@ -238,7 +238,7 @@ V.Globe = function (containerId, opts, callback) {
                 return;
         }
 
-        var objsToRemove = _.rest(scene.children, 1);
+        var objsToRemove = _.rest(scene.children, 0);
         _.each(objsToRemove, function (object) {
             scene.remove(object);
         });
