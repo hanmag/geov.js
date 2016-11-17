@@ -113,16 +113,24 @@ V.Globe = function (containerId, opts) {
         });
 
         controls = new THREE.TrackballControls(camera);
+        controls.minDistance = 0.8;
+        controls.maxDistance = 3.0;
+        controls.noPan = true;
 
         container.appendChild(renderer.domElement);
 
         window.addEventListener('resize', onWindowResize, false);
+        document.addEventListener('keydown', onKeyDown, false);
     }
 
     function onWindowResize(event) {
         camera.aspect = container.offsetWidth / container.offsetHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(container.offsetWidth, container.offsetHeight);
+    }
+
+    function onKeyDown(event) {
+        controls.reset();
     }
 
     function render() {
