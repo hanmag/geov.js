@@ -6,6 +6,11 @@ var V = V || {};
 
 V.Globe = function (containerId, opts) {
 
+    if (!Detector.webgl) {
+        Detector.addGetWebGLMessage();
+        return;
+    }
+
     opts = opts || {};
 
     var imgDir = opts.imgDir || 'images/';
@@ -17,11 +22,6 @@ V.Globe = function (containerId, opts) {
     var sphere, clouds, stars;
 
     function init() {
-
-        if ( ! Detector.webgl) {
-            Detector.addGetWebGLMessage();
-            return;
-        }
 
         var width = container.offsetWidth || window.innerWidth,
             height = container.offsetHeight || window.innerHeight;
@@ -37,7 +37,7 @@ V.Globe = function (containerId, opts) {
         group = new THREE.Group();
         scene.add(group);
 
-        camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1000);
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
         camera.position.z = 1.5;
 
         renderer = new THREE.WebGLRenderer();
@@ -48,7 +48,7 @@ V.Globe = function (containerId, opts) {
         scene.add(new THREE.AmbientLight(0x555555));
 
         var light = new THREE.DirectionalLight(0xffffff, 0.6);
-        light.position.set(0, 0, 1).normalize();
+        light.position.set(1, 1, 2).normalize();
         scene.add(light);
 
         var createSphere = _.after(3, function () {
@@ -81,7 +81,7 @@ V.Globe = function (containerId, opts) {
 
         var createStars = _.after(1, function () {
             stars = new THREE.Mesh(
-                new THREE.SphereGeometry(radius * 200, segments * 2, segments * 2),
+                new THREE.SphereGeometry(radius * 100, segments * 2, segments * 2),
                 new THREE.MeshBasicMaterial({
                     map: starsTexture,
                     side: THREE.BackSide
