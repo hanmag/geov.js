@@ -4,20 +4,26 @@
 <head>
     <title>GeoV.js</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="images/favicon.ico" />
-
+    <!-- Tell IE to use the latest, best version. -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- Make the application on mobile take up the full browser screen and disable user scaling. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
     <style>
-        body {
+        html,
+        body,
+        #geovContainer {
+            width: 100%;
+            height: 100%;
             margin: 0;
+            padding: 0;
             overflow: hidden;
-            background-color: #000;
         }
     </style>
 </head>
 
 <body>
-    <div id="container"></div>
+    <div id="geovContainer"></div>
 
     //----------- scripts ------------
     <script type="text/javascript" src="third-party/Detector.js"></script>
@@ -28,15 +34,14 @@
     <script type="text/javascript" src="js/geov.js"></script>
 
     <script type="text/javascript">
-        if ( ! Detector.webgl ) {
-            Detector.addGetWebGLMessage();
+        if (window.location.protocol === 'file:') {
+            document.body.innerHTML = ""
+            document.write('<p><b>This file must be hosted in a web server.</b></p>');
         }
-        else {
-            var container = document.getElementById('container');
-            var globe = new V.Globe(container);
+        else
+        {
+            var globe = new V.Globe('geovContainer');
             console.log(globe);
-
-            globe.animate();
         }
     </script>
 </body>

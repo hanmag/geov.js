@@ -4,11 +4,13 @@
 
 var V = V || {};
 
-V.Globe = function (container, opts) {
+V.Globe = function (containerId, opts) {
 
     opts = opts || {};
 
     var imgDir = opts.imgDir || 'images/';
+
+    var container = document.getElementById(containerId);
 
     var camera, renderer, scene, group, controls;
 
@@ -16,11 +18,16 @@ V.Globe = function (container, opts) {
 
     function init() {
 
+        if ( ! Detector.webgl) {
+            Detector.addGetWebGLMessage();
+            return;
+        }
+
         var width = container.offsetWidth || window.innerWidth,
             height = container.offsetHeight || window.innerHeight;
 
         // Earth params
-        var radius = 0.5, segments = 32, rotation = 6;
+        var radius = 0.5, segments = 32, rotation = 3;
 
         // Earth texture
         var mapTexture, bumpMapTexture, specularMapTexture, cloudsTexture, starsTexture;
@@ -41,7 +48,7 @@ V.Globe = function (container, opts) {
         scene.add(new THREE.AmbientLight(0x555555));
 
         var light = new THREE.DirectionalLight(0xffffff, 0.6);
-        light.position.set(5, 3, 5).normalize();
+        light.position.set(0, 0, 1).normalize();
         scene.add(light);
 
         var createSphere = _.after(3, function () {
@@ -132,8 +139,7 @@ V.Globe = function (container, opts) {
     }
 
     init();
-
-    this.animate = animate;
+    animate();
 
     return this;
 };
