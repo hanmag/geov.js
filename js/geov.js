@@ -57,32 +57,27 @@ V.Globe = function (containerId, opts, callback) {
     }
 
     var textureDir = opts.textureDir;
-    var mapStyle;
+    var mapStyle, viewMode;
 
     var container = document.getElementById(containerId);
 
     var camera, controls, renderer = new THREE.WebGLRenderer(), scene = new THREE.Scene();
 
-    var earthMeshGroup = new THREE.Group(), blackMeshGroup = new THREE.Group();
+    var earthMeshGroup = new THREE.Group(),
+        blackMeshGroup = new THREE.Group(),
+        earthPlaneGroup = new THREE.Group();
 
     var clouds;
 
     function init() {
-
-        var width = container.offsetWidth || window.innerWidth,
-            height = container.offsetHeight || window.innerHeight;
-
         // Earth Params
-        var radius = 0.5, segments = 32, rotation = 3;
+        var radius = 0.5, segments = 32, rotation = 3, mapWidth = 1200, mapHeight = 600;
 
         // Earth Mesh Textures
         var mapTexture, bumpMapTexture, specularMapTexture, cloudsTexture, starsTexture,
             blackMapTexture;
 
-        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-        camera.position.z = 1.5;
-
-        renderer.setSize(width, height);
+        renderer.setSize(container.offsetWidth, container.offsetHeight);
         renderer.setClearColor(0x000000);
         renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -100,6 +95,21 @@ V.Globe = function (containerId, opts, callback) {
             );
             sphere.rotation.y = rotation;
             earthMeshGroup.add(sphere);
+
+            var shader = Shaders['atmosphere'];
+            var uniforms = THREE.UniformsUtils.clone(shader.uniforms);
+
+            earthMeshGroup.add(new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.15, segments, segments),
+                new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: shader.vertexShader,
+                    fragmentShader: shader.fragmentShader,
+                    side: THREE.BackSide,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true
+                })
+            ));
         });
 
         var createEarthClouds = _.after(1, function () {
@@ -158,10 +168,24 @@ V.Globe = function (containerId, opts, callback) {
             ));
         });
 
+        var createEarthPlane = _.after(1, function () {
+            var plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(mapWidth, mapHeight, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    map: mapTexture,
+                    shininess: 10,
+                    side: THREE.FrontSide
+                })
+            );
+            //plane.rotation.x = -0.25 * Math.PI;
+            earthPlaneGroup.add(plane);
+        });
+
         var loader = new THREE.TextureLoader();
         loader.load(textureDir + '2_no_clouds_4k.jpg', function (texture) {
             mapTexture = texture;
             createEarthSphere();
+            createEarthPlane();
         });
         loader.load(textureDir + 'elev_bump_4k.jpg', function (texture) {
             bumpMapTexture = texture;
@@ -184,11 +208,6 @@ V.Globe = function (containerId, opts, callback) {
             createBlackSphere();
         });
 
-        controls = new THREE.TrackballControls(camera, container);
-        controls.minDistance = 1.0;
-        controls.maxDistance = 3.0;
-        controls.noPan = true;
-
         container.appendChild(renderer.domElement);
 
         stats = new Stats();
@@ -198,6 +217,7 @@ V.Globe = function (containerId, opts, callback) {
     }
 
     function onWindowResize(event) {
+        if (camera === undefined) return;
         camera.aspect = container.offsetWidth / container.offsetHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(container.offsetWidth, container.offsetHeight);
@@ -205,37 +225,55 @@ V.Globe = function (containerId, opts, callback) {
 
     function render() {
         applyOptions();
+        applyAnimation();
+
+        if (controls === undefined)
+            return;
 
         controls.update();
-        if (clouds !== undefined)
-            clouds.rotation.y += 0.0002;
         renderer.render(scene, camera);
     }
 
-    function applyOptions() {
-        setMapStyle();
+    function applyAnimation() {
+        if (clouds !== undefined)
+            clouds.rotation.y += 0.0002;
     }
 
-    function setMapStyle() {
-        if (mapStyle === opts.mapStyle)
+    function applyOptions() {
+        if (mapStyle === opts.mapStyle && viewMode === opts.viewMode)
             return;
 
-        mapStyle = opts.mapStyle;
+        resetSceneContent(opts.mapStyle + '-' + opts.viewMode);
 
-        var meshGroup, ambientLight, directionalLight;
-        switch (opts.mapStyle) {
-            case "earth":
+        if (viewMode !== opts.viewMode)
+            resetSceneControls(opts.viewMode);
+
+        mapStyle = opts.mapStyle;
+        viewMode = opts.viewMode;
+    }
+
+    // apply scene settings
+    function resetSceneContent(tag) {
+        switch (tag) {
+            case 'earth-3d':
                 ambientLight = new THREE.AmbientLight(0x555555);
                 directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
                 directionalLight.position.set(1, 1, 2).normalize();
                 meshGroup = earthMeshGroup;
                 break;
-            case "black":
+            case 'black-3d':
+                ambientLight = new THREE.AmbientLight(0x555555);
                 meshGroup = blackMeshGroup;
                 break;
+            case 'earth-2.5d':
+                ambientLight = new THREE.AmbientLight(0xaaaaaa);
+                directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(1, 1, 2).normalize();
+                meshGroup = earthPlaneGroup;
+                break;
             default:
-                console.log("Sorry, we are out of " + opts.mapStyle + ".");
-                return;
+                console.log("Sorry, scene settings are out of " + tag + ".");
+                break;
         }
 
         var objsToRemove = _.rest(scene.children, 0);
@@ -247,7 +285,36 @@ V.Globe = function (containerId, opts, callback) {
             scene.add(ambientLight);
         if (directionalLight !== undefined)
             scene.add(directionalLight);
-        scene.add(meshGroup);
+        if (meshGroup !== undefined)
+            scene.add(meshGroup);
+    }
+
+    // apply camera and controls settings
+    function resetSceneControls(mode) {
+        switch (mode) {
+            case '3d':
+                camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 100);
+                camera.position.z = 1.5;
+                controls = new THREE.TrackballControls(camera, container);
+                controls.minDistance = 1.0;
+                controls.maxDistance = 3.0;
+                controls.noPan = true;
+                break;
+            case '2.5d':
+                camera = new THREE.OrthographicCamera(container.offsetWidth / - 2, container.offsetWidth / 2, container.offsetHeight / 2, container.offsetHeight / - 2, 0, 1000);
+                camera.position.x = 0;
+                camera.position.y = -10;
+                camera.position.z = 50;
+                controls = new THREE.OrthographicTrackballControls(camera, container);
+                controls.noRoll = true;
+                controls.noRotate = true;
+                controls.noPan = true;
+                controls.noZoom = true;
+                break;
+            default:
+                console.log("Sorry, controls settings are out of " + mode + ".");
+                break;
+        }
     }
 
     function animate() {

@@ -3,7 +3,7 @@ GeoV.js
 
 ### Features ###
 * 基础三维地球功能：旋转、缩放。
-* 地图样式风格切换。
+* 可扩展地图样式风格自由切换。
 
 ### References ###
 * https://github.com/AnalyticalGraphicsInc/cesium

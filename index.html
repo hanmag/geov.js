@@ -77,9 +77,14 @@
             <h3>参数设置</h3>
 
             <div>
-                <label>地图风格</label>
+                <label>风格</label>
                 <label><input type="radio" name="mapStyle" value="earth" Checked="checked"/>普通地图</label>
                 <label><input type="radio" name="mapStyle" value="black"/>黑色地图</label>
+            </div>
+            <div>
+                <label>视图</label>
+                <label><input type="radio" name="viewMode" value="3d" Checked="checked"/>3维</label>
+                <label><input type="radio" name="viewMode" value="2.5d"/>2.5维</label>
             </div>
         </div>
     </div>
@@ -92,6 +97,7 @@
     <script type="text/javascript" src="third-party/three.min.js"></script>
     <script type="text/javascript" src="third-party/stats.min.js"></script>
     <script type="text/javascript" src="third-party/TrackballControls.js"></script>
+    <script type="text/javascript" src="third-party/OrthographicTrackballControls.js"></script>
     <script type="text/javascript" src="third-party/underscore-min.js"></script>
     <script type="text/javascript" src="third-party/jquery-3.1.1.min.js"></script>
 
@@ -107,7 +113,8 @@
         {
             var opts = {
                 textureDir: 'textures/',
-                mapStyle: 'earth'
+                mapStyle: 'earth',
+                viewMode: '3d'
             };
             var globe = new V.Globe('geovContainer', opts, buildGUI);
         }
