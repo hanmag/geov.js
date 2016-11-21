@@ -1,6 +1,6 @@
 var options = {
     mapStyle: 'normal',
-    viewMode: '3d-earth',
+    viewMode: '3d-plane',
     textureDir: 'textures/',
     textures: {
         normal: '2_no_clouds_4k.jpg',

@@ -83,8 +83,10 @@
             </div>
             <div>
                 <label>视图</label>
-                <label><input type="radio" name="viewMode" value="3d-earth" Checked="checked"/>3维</label>
-                <label><input type="radio" name="viewMode" value="2.5d"/>2.5维</label>
+                <label><input type="radio" name="viewMode" value="3d-earth"/>三维球体</label>
+                <label><input type="radio" name="viewMode" value="3d-plane" Checked="checked"/>三维球面</label>
+                <label><input type="radio" name="viewMode" value="2d-earth"/>二维立体</label>
+                <label><input type="radio" name="viewMode" value="2d-plane"/>二维平面</label>
             </div>
         </div>
     </div>
@@ -109,8 +111,7 @@
             document.body.innerHTML = ""
             document.write('<p><b>This file must be hosted in a web server.</b></p>');
         }
-        else
-        {
+        else {
             var globe = new V.Globe('geovContainer', options, buildGUI);
         }
     </script>

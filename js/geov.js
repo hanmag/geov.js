@@ -38,8 +38,8 @@ V.Globe = function (containerId, opts, callback) {
         directionalLight: new THREE.DirectionalLight(0xffffff, 0.7),
         perspectiveCamera: new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 1000),
         orthographicCamera: new THREE.OrthographicCamera(container.offsetWidth / - 2, container.offsetWidth / 2, container.offsetHeight / 2, container.offsetHeight / - 2, 0, 1000),
-        earthSphere: undefined,
-        cloudSphere: undefined,
+        earthSphere: undefined, earthSphere2: undefined,
+        cloudSphere: undefined, cloudSphere2: undefined,
         oceanSphere: undefined,
         galaxy: undefined,
         atomsphere: undefined,
@@ -67,6 +67,17 @@ V.Globe = function (containerId, opts, callback) {
             Components.earthSphere.castShadow = true;
             Components.earthSphere.receiveShadow = true;
 
+            // 3d earth mesh
+            Components.earthSphere2 = new THREE.Mesh(
+                new THREE.SphereGeometry(radius, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    bumpScale: 0.5,
+                    specular: new THREE.Color('grey'),
+                    shininess: 10
+                })
+            );
+            Components.earthSphere2.rotation.y = rotation;
+
             // 3d cloud mesh
             Components.cloudSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(radius * 1.18, segments, segments),
@@ -78,6 +89,17 @@ V.Globe = function (containerId, opts, callback) {
                 })
             );
             Components.cloudSphere.rotation.y = rotation;
+
+            Components.cloudSphere2 = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.02, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    side: THREE.DoubleSide,
+                    opacity: 0.8,
+                    depthWrite: false,
+                    transparent: true
+                })
+            );
+            Components.cloudSphere2.rotation.y = rotation;
 
             Components.oceanSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(radius * 1.11, segments, segments),
@@ -144,11 +166,14 @@ V.Globe = function (containerId, opts, callback) {
 
         var renderScene = _.after(Object.getOwnPropertyNames(opts.textures).length, function () {
             Components.earthSphere.material.bumpMap = textures['bump'];
-            Components.earthSphere.material.specularMap = textures['specular'];
             Components.earthSphere.material.displacementMap = textures['displacement'];
             Components.earthSphere.material.displacementScale = 10;
 
+            Components.earthSphere2.material.bumpMap = textures['bump'];
+            Components.earthSphere2.material.specularMap = textures['specular'];
+
             Components.cloudSphere.material.map = textures['clouds'];
+            Components.cloudSphere2.material.map = textures['clouds'];
             textures['water'].repeat.set(2, 1).multiplyScalar(4);
             Components.oceanSphere.material.map = textures['water'];
             Components.galaxy.material.map = textures['galaxy'];
@@ -189,6 +214,7 @@ V.Globe = function (containerId, opts, callback) {
 
     function applyAnimation() {
         Components.cloudSphere.rotation.y += 0.0003;
+        Components.cloudSphere2.rotation.y += 0.0003;
     }
 
     function applyOptions() {
@@ -226,17 +252,25 @@ V.Globe = function (containerId, opts, callback) {
 
                 camera = Components.perspectiveCamera;
                 controls = new THREE.OrbitControls(camera, container);
-                controls.minDistance = 20;
-                controls.maxDistance = 300;
+                controls.minDistance = 100;
+                controls.maxDistance = 200;
                 controls.enableDamping = true;
                 controls.rotateSpeed = 0.5
                 controls.enablePan = false;
                 break;
             case '3d-plane':
+                scene.add(Components.ambientLight);
+                scene.add(Components.directionalLight);
+                mesh = Components.earthSphere2;
+                meshGroup.add(mesh);
+                meshGroup.add(Components.cloudSphere2);
+                meshGroup.add(Components.galaxy);
+                meshGroup.add(Components.atomsphere);
+
                 camera = Components.perspectiveCamera;
                 controls = new THREE.OrbitControls(camera, container);
-                controls.minDistance = 1.0;
-                controls.maxDistance = 2.5;
+                controls.minDistance = 100;
+                controls.maxDistance = 200;
                 controls.enableDamping = true;
                 controls.rotateSpeed = 0.5
                 controls.enablePan = false;
