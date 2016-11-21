@@ -6,32 +6,12 @@ var V = V || {};
 
 V.Globe = function (containerId, opts, callback) {
 
+    if (!Detector.webgl) {
+        Detector.addGetWebGLMessage();
+        return;
+    }
+
     var Shaders = {
-        'earth': {
-            uniforms: {
-                'texture': { type: 't', value: null }
-            },
-            vertexShader: [
-                'varying vec3 vNormal;',
-                'varying vec2 vUv;',
-                'void main() {',
-                'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
-                'vNormal = normalize( normalMatrix * normal );',
-                'vUv = uv;',
-                '}'
-            ].join('\n'),
-            fragmentShader: [
-                'uniform sampler2D texture;',
-                'varying vec3 vNormal;',
-                'varying vec2 vUv;',
-                'void main() {',
-                'vec3 diffuse = texture2D( texture, vUv ).xyz;',
-                'float intensity = 1.05 - dot( vNormal, vec3( 0.0, 0.0, 1.0 ) );',
-                'vec3 atmosphere = vec3( 1.0, 1.0, 1.0 ) * pow( intensity, 3.0 );',
-                'gl_FragColor = vec4( diffuse + atmosphere, 1.0 );',
-                '}'
-            ].join('\n')
-        },
         'atmosphere': {
             uniforms: {},
             vertexShader: [
@@ -45,62 +25,86 @@ V.Globe = function (containerId, opts, callback) {
                 'varying vec3 vNormal;',
                 'void main() {',
                 'float intensity = pow( 0.8 - dot( vNormal, vec3( 0, 0, 1.0 ) ), 12.0 );',
-                'gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 ) * intensity;',
+                'gl_FragColor = vec4( 0.3, 0.5, 1.0, 0.5 ) * intensity;',
                 '}'
             ].join('\n')
         }
     };
 
-    if (!Detector.webgl) {
-        Detector.addGetWebGLMessage();
-        return;
-    }
-
-    var textureDir = opts.textureDir;
-    var mapStyle, viewMode;
-
     var container = document.getElementById(containerId);
 
-    var camera, controls, renderer = new THREE.WebGLRenderer(), scene = new THREE.Scene();
+    var Components = {
+        ambientLight: new THREE.AmbientLight(0x999999),
+        directionalLight: new THREE.DirectionalLight(0xffffff, 0.7),
+        perspectiveCamera: new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 1000),
+        orthographicCamera: new THREE.OrthographicCamera(container.offsetWidth / - 2, container.offsetWidth / 2, container.offsetHeight / 2, container.offsetHeight / - 2, 0, 1000),
+        earthSphere: undefined,
+        cloudSphere: undefined,
+        oceanSphere: undefined,
+        galaxy: undefined,
+        atomsphere: undefined,
+        initialize: function () {
+            // Earth Params
+            var radius = 50, segments = 64, rotation = 3, mapWidth = 2000, mapHeight = 1000;
 
-    var earthMeshGroup = new THREE.Group(),
-        blackMeshGroup = new THREE.Group(),
-        earthPlaneGroup = new THREE.Group();
+            Components.directionalLight.position.set(100, 100, 200);
+            Components.directionalLight.castShadow = true;
+            Components.perspectiveCamera.position.z = 150;
+            Components.orthographicCamera.position.x = 0;
+            Components.orthographicCamera.position.y = -10;
+            Components.orthographicCamera.position.z = 50;
 
-    var clouds;
-
-    function init() {
-        // Earth Params
-        var radius = 0.5, segments = 32, rotation = 3, mapWidth = 1200, mapHeight = 600;
-
-        // Earth Mesh Textures
-        var mapTexture, bumpMapTexture, specularMapTexture, cloudsTexture, starsTexture,
-            blackMapTexture;
-
-        renderer.setSize(container.offsetWidth, container.offsetHeight);
-        renderer.setClearColor(0x000000);
-        renderer.setPixelRatio(window.devicePixelRatio);
-
-        var createEarthSphere = _.after(3, function () {
-            var sphere = new THREE.Mesh(
+            // 3d Mesh
+            Components.earthSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(radius, segments, segments),
                 new THREE.MeshPhongMaterial({
-                    map: mapTexture,
-                    bumpMap: bumpMapTexture,
-                    bumpScale: 0.005,
-                    specularMap: specularMapTexture,
+                    bumpScale: 0.5,
                     specular: new THREE.Color('grey'),
                     shininess: 10
                 })
             );
-            sphere.rotation.y = rotation;
-            earthMeshGroup.add(sphere);
+            Components.earthSphere.rotation.y = rotation;
+            Components.earthSphere.castShadow = true;
+            Components.earthSphere.receiveShadow = true;
+
+            // 3d cloud mesh
+            Components.cloudSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.18, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    side: THREE.DoubleSide,
+                    opacity: 0.8,
+                    depthWrite: false,
+                    transparent: true
+                })
+            );
+            Components.cloudSphere.rotation.y = rotation;
+
+            Components.oceanSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.11, segments, segments),
+                new THREE.MeshPhongMaterial({
+                    color: 0x000000,
+                    specular: 0x111111,
+                    shininess: 512,
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            Components.oceanSphere.material.color.setHSL(0.51, 0.75, 0.25);
+            Components.oceanSphere.rotation.y = rotation;
+            Components.oceanSphere.receiveShadow = true;
+
+            Components.galaxy = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 100, segments * 2, segments * 2),
+                new THREE.MeshBasicMaterial({
+                    side: THREE.BackSide
+                })
+            );
 
             var shader = Shaders['atmosphere'];
             var uniforms = THREE.UniformsUtils.clone(shader.uniforms);
 
-            earthMeshGroup.add(new THREE.Mesh(
-                new THREE.SphereGeometry(radius * 1.15, segments, segments),
+            Components.atomsphere = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.25, segments, segments),
                 new THREE.ShaderMaterial({
                     uniforms: uniforms,
                     vertexShader: shader.vertexShader,
@@ -109,111 +113,60 @@ V.Globe = function (containerId, opts, callback) {
                     blending: THREE.AdditiveBlending,
                     transparent: true
                 })
-            ));
-        });
-
-        var createEarthClouds = _.after(1, function () {
-            clouds = new THREE.Mesh(
-                new THREE.SphereGeometry(radius * 1.02, segments, segments),
-                new THREE.MeshPhongMaterial({
-                    map: cloudsTexture,
-                    transparent: true
-                })
             );
-            clouds.rotation.y = rotation;
-            earthMeshGroup.add(clouds);
-        });
+        }
+    };
 
-        var createStars = _.after(1, function () {
-            var stars = new THREE.Mesh(
-                new THREE.SphereGeometry(radius * 100, segments * 2, segments * 2),
-                new THREE.MeshBasicMaterial({
-                    map: starsTexture,
-                    side: THREE.BackSide
-                })
-            );
-            earthMeshGroup.add(stars);
-        });
+    var mapStyle, viewMode;
 
-        var createBlackSphere = _.after(1, function () {
-            var shader = Shaders['earth'];
+    var camera, controls, textures = {},
+        renderer = new THREE.WebGLRenderer(),
+        scene = new THREE.Scene(),
+        mesh = new THREE.Mesh();
 
-            var uniforms = THREE.UniformsUtils.clone(shader.uniforms);
-            uniforms['texture'].value = blackMapTexture;
+    function init() {
 
-            var mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(radius, segments, segments),
-                new THREE.ShaderMaterial({
-                    uniforms: uniforms,
-                    vertexShader: shader.vertexShader,
-                    fragmentShader: shader.fragmentShader
-                })
-            );
-            mesh.rotation.y = rotation;
-            blackMeshGroup.add(mesh);
+        Components.initialize();
 
-            shader = Shaders['atmosphere'];
-            uniforms = THREE.UniformsUtils.clone(shader.uniforms);
-
-            blackMeshGroup.add(new THREE.Mesh(
-                new THREE.SphereGeometry(radius * 1.15, segments, segments),
-                new THREE.ShaderMaterial({
-                    uniforms: uniforms,
-                    vertexShader: shader.vertexShader,
-                    fragmentShader: shader.fragmentShader,
-                    side: THREE.BackSide,
-                    blending: THREE.AdditiveBlending,
-                    transparent: true
-                })
-            ));
-        });
-
-        var createEarthPlane = _.after(1, function () {
-            var plane = new THREE.Mesh(
-                new THREE.PlaneGeometry(mapWidth, mapHeight, segments, segments),
-                new THREE.MeshPhongMaterial({
-                    map: mapTexture,
-                    shininess: 10,
-                    side: THREE.FrontSide
-                })
-            );
-            //plane.rotation.x = -0.25 * Math.PI;
-            earthPlaneGroup.add(plane);
-        });
-
-        var loader = new THREE.TextureLoader();
-        loader.load(textureDir + '2_no_clouds_4k.jpg', function (texture) {
-            mapTexture = texture;
-            createEarthSphere();
-            createEarthPlane();
-        });
-        loader.load(textureDir + 'elev_bump_4k.jpg', function (texture) {
-            bumpMapTexture = texture;
-            createEarthSphere();
-        });
-        loader.load(textureDir + 'water_4k.png', function (texture) {
-            specularMapTexture = texture;
-            createEarthSphere();
-        });
-        loader.load(textureDir + 'fair_clouds_4k.png', function (texture) {
-            cloudsTexture = texture;
-            createEarthClouds();
-        });
-        loader.load(textureDir + 'galaxy_starfield.png', function (texture) {
-            starsTexture = texture;
-            createStars();
-        });
-        loader.load(textureDir + 'black_world_2k.jpg', function (texture) {
-            blackMapTexture = texture;
-            createBlackSphere();
-        });
+        renderer.shadowMap.enabled = true;
+        renderer.setSize(container.offsetWidth, container.offsetHeight);
+        renderer.setClearColor(0x000000);
+        renderer.setPixelRatio(window.devicePixelRatio);
 
         container.appendChild(renderer.domElement);
 
+        // stats
         stats = new Stats();
         container.appendChild(stats.dom);
 
+        // events
         window.addEventListener('resize', onWindowResize, false);
+
+        var renderScene = _.after(Object.getOwnPropertyNames(opts.textures).length, function () {
+            Components.earthSphere.material.bumpMap = textures['bump'];
+            Components.earthSphere.material.specularMap = textures['specular'];
+            Components.earthSphere.material.displacementMap = textures['displacement'];
+            Components.earthSphere.material.displacementScale = 10;
+
+            Components.cloudSphere.material.map = textures['clouds'];
+            textures['water'].repeat.set(2, 1).multiplyScalar(4);
+            Components.oceanSphere.material.map = textures['water'];
+            Components.galaxy.material.map = textures['galaxy'];
+
+            animate();
+            setTimeout(callback, 500);
+        });
+        // renderScene is run once, after all textures have loaded.
+        var loader = new THREE.TextureLoader();
+        _.each(opts.textures, function (path, name) {
+            loader.load(opts.textureDir + path, function (t) {
+                t.anisotropy = 16;
+                t.wrapS = t.wrapT = THREE.RepeatWrapping;
+                textures[name] = t;
+
+                renderScene();
+            });
+        });
     }
 
     function onWindowResize(event) {
@@ -225,110 +178,95 @@ V.Globe = function (containerId, opts, callback) {
 
     function render() {
         applyOptions();
-        applyAnimation();
 
         if (controls === undefined)
             return;
 
         controls.update();
+        applyAnimation();
         renderer.render(scene, camera);
     }
 
     function applyAnimation() {
-        if (clouds !== undefined)
-            clouds.rotation.y += 0.0002;
+        Components.cloudSphere.rotation.y += 0.0003;
     }
 
     function applyOptions() {
         if (mapStyle === opts.mapStyle && viewMode === opts.viewMode)
             return;
 
-        resetSceneContent(opts.mapStyle + '-' + opts.viewMode);
-
         if (viewMode !== opts.viewMode)
-            resetSceneControls(opts.viewMode);
+            resetScene(opts.viewMode);
+
+        mesh.material.map = textures[opts.mapStyle];
 
         mapStyle = opts.mapStyle;
         viewMode = opts.viewMode;
     }
 
-    // apply scene settings
-    function resetSceneContent(tag) {
-        switch (tag) {
-            case 'earth-3d':
-                ambientLight = new THREE.AmbientLight(0x555555);
-                directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-                directionalLight.position.set(1, 1, 2).normalize();
-                meshGroup = earthMeshGroup;
-                break;
-            case 'black-3d':
-                ambientLight = new THREE.AmbientLight(0x555555);
-                meshGroup = blackMeshGroup;
-                break;
-            case 'earth-2.5d':
-                ambientLight = new THREE.AmbientLight(0xaaaaaa);
-                directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-                directionalLight.position.set(1, 1, 2).normalize();
-                meshGroup = earthPlaneGroup;
-                break;
-            default:
-                console.log("Sorry, scene settings are out of " + tag + ".");
-                break;
-        }
+    // apply camera, controls and mesh settings
+    function resetScene(mode) {
+        var meshGroup = new THREE.Group();
 
         var objsToRemove = _.rest(scene.children, 0);
         _.each(objsToRemove, function (object) {
             scene.remove(object);
         });
 
-        if (ambientLight !== undefined)
-            scene.add(ambientLight);
-        if (directionalLight !== undefined)
-            scene.add(directionalLight);
-        if (meshGroup !== undefined)
-            scene.add(meshGroup);
-    }
-
-    // apply camera and controls settings
-    function resetSceneControls(mode) {
         switch (mode) {
-            case '3d':
-                camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 100);
-                camera.position.z = 1.5;
-                controls = new THREE.TrackballControls(camera, container);
-                controls.minDistance = 1.0;
-                controls.maxDistance = 3.0;
-                controls.noPan = true;
+            case '3d-earth':
+                scene.add(Components.ambientLight);
+                scene.add(Components.directionalLight);
+                mesh = Components.earthSphere;
+                meshGroup.add(mesh);
+                meshGroup.add(Components.cloudSphere);
+                meshGroup.add(Components.oceanSphere);
+                meshGroup.add(Components.galaxy);
+                meshGroup.add(Components.atomsphere);
+
+                camera = Components.perspectiveCamera;
+                controls = new THREE.OrbitControls(camera, container);
+                controls.minDistance = 20;
+                controls.maxDistance = 300;
+                controls.enableDamping = true;
+                controls.rotateSpeed = 0.5
+                controls.enablePan = false;
                 break;
-            case '2.5d':
-                camera = new THREE.OrthographicCamera(container.offsetWidth / - 2, container.offsetWidth / 2, container.offsetHeight / 2, container.offsetHeight / - 2, 0, 1000);
-                camera.position.x = 0;
-                camera.position.y = -10;
-                camera.position.z = 50;
-                controls = new THREE.OrthographicTrackballControls(camera, container);
-                controls.noRoll = true;
-                controls.noRotate = true;
-                controls.noPan = true;
-                controls.noZoom = true;
+            case '3d-plane':
+                camera = Components.perspectiveCamera;
+                controls = new THREE.OrbitControls(camera, container);
+                controls.minDistance = 1.0;
+                controls.maxDistance = 2.5;
+                controls.enableDamping = true;
+                controls.rotateSpeed = 0.5
+                controls.enablePan = false;
+                break;
+            case '2d-earth':
+                camera = Components.orthographicCamera;
+                controls = new THREE.OrbitControls(camera, container);
+                controls.enableRotate = false;
+                break;
+            case '2d-Plane':
+                camera = Components.orthographicCamera;
+                controls = new THREE.OrbitControls(camera, container);
+                controls.enableRotate = false;
                 break;
             default:
                 console.log("Sorry, controls settings are out of " + mode + ".");
                 break;
         }
+
+        scene.add(meshGroup);
     }
 
     function animate() {
         requestAnimationFrame(animate);
 
-        stats.begin();
         render();
-        stats.end();
+        stats.update();
     }
 
     init();
-    animate();
-
-    setTimeout(callback, 500);
 
     return this;
 };

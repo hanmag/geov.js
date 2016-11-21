@@ -30,10 +30,10 @@ function buildGUI() {
     });
 
     $('input[name="mapStyle"]:radio').change(function () {
-        opts.mapStyle = this.value;
+        options.mapStyle = this.value;
     });
     $('input[name="viewMode"]:radio').change(function () {
-        opts.viewMode = this.value;
+        options.viewMode = this.value;
     });
 }
 
