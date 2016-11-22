@@ -1,5 +1,5 @@
 /**
- * @author Wang Jue  / http://git.oschina.net/wangjue
+ * @author Wang Jue  / https://github.com/hanmag
  */
 
 var V = V || {};
