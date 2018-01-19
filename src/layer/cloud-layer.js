@@ -5,10 +5,9 @@ const imageMesh = new THREE.Mesh();
 
 export default {
     addToGlobe: function (STATE) {
-        imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 1.005, 128, 128);
+        imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 1.032, 128, 128);
         imageMesh.material = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
-            opacity: 0.8,
             depthWrite: false,
             transparent: true
         });
@@ -24,7 +23,7 @@ export default {
         STATE.layers.push(this);
     },
     update: function (STATE) {
-        imageMesh.visible = STATE.camera.position.length() > STATE.radius * 1.4;
+        imageMesh.material.opacity = STATE.camera.position.length() / STATE.radius * 0.5;
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
     }

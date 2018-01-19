@@ -1,19 +1,19 @@
 import './assets/css/geov.css';
 
-import * as TWEEN from 'es6-tween';
 import * as THREE from 'three';
-import trackballControls from 'three-trackballcontrols';
+import MapControls from 'map-camera-controls';
 
 import atomLayer from './layer/atom-layer';
 import cloudLayer from './layer/cloud-layer';
 import imageLayer from './layer/image-layer';
+import starLayer from './layer/star-layer';
 
 const GEOV = {
     resizeCanvas: resizeCanvas
 };
 // Holds component state
 const STATE = Object.assign({}, {}, {
-    radius: 500,
+    radius: 6371,
     layers: [],
     initialized: false
 });
@@ -23,7 +23,6 @@ function comp(nodeElement, options = {}) {
     resizeCanvas();
 
     setupGlobe();
-    moveCamera();
 
     return GEOV;
 }
@@ -97,18 +96,16 @@ function initStatic(nodeElement, options) {
 
     // Setup camera
     STATE.camera = new THREE.PerspectiveCamera();
-    STATE.camera.position.z = STATE.radius * 3;
-    STATE.camera.far = STATE.radius * 5;
+    STATE.camera.near = 0.1;
+    STATE.camera.far = 1000000000;
 
     // Add lights
     STATE.camera.add(new THREE.PointLight(0xffffff, 1, STATE.radius));
     STATE.scene.add(new THREE.AmbientLight(0xcccccc));
 
     // Add camera interaction
-    STATE.tbControls = new trackballControls(STATE.camera, STATE.renderer.domElement);
-    STATE.tbControls.minDistance = STATE.radius * 1.05;
-    STATE.tbControls.maxDistance = STATE.radius * 4;
-    STATE.tbControls.rotateSpeed = 0.5;
+    STATE.controls = new MapControls(STATE.camera, STATE.renderer.domElement, STATE);
+    STATE.controls.maxZoom = 19;
 
     // Kick-off renderer
     (function animate() {
@@ -118,20 +115,15 @@ function initStatic(nodeElement, options) {
             .filter(o => o.object.name); // Check only objects with labels
         STATE.toolTipElem.textContent = intersects.length ? intersects[0].object.name : '';
 
-        // tween update
-        TWEEN.update();
-
         // Frame cycle
         STATE.layers.forEach(layer => {
             if (layer.update)
                 layer.update(STATE);
         });
 
-        // fit rotate speed
-        STATE.tbControls.rotateSpeed = 0.005 * Math.pow(STATE.camera.position.length(), 2.4) / (STATE.radius * STATE.radius);
-        STATE.tbControls.update();
-
+        STATE.controls.update();
         STATE.renderer.render(STATE.scene, STATE.camera);
+
         requestAnimationFrame(animate);
     })();
 
@@ -142,14 +134,7 @@ function setupGlobe() {
     imageLayer.addToGlobe(STATE);
     cloudLayer.addToGlobe(STATE);
     atomLayer.addToGlobe(STATE);
-}
-
-function moveCamera() {
-    new TWEEN.Tween(STATE.camera.position).to({
-        x: 0,
-        y: STATE.radius,
-        z: STATE.radius * 3.6
-    }, 1000).delay(800).easing(TWEEN.Easing.Quadratic.InOut).start();
+    starLayer.addToGlobe(STATE);
 }
 
 function resizeCanvas() {
@@ -161,8 +146,8 @@ function resizeCanvas() {
         STATE.renderer.setSize(STATE.width, STATE.height);
         STATE.camera.aspect = STATE.width / STATE.height;
         STATE.camera.updateProjectionMatrix();
+        STATE.controls.handleResize();
     }
-
 }
 
 export default comp;

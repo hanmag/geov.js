@@ -2,7 +2,6 @@
   "name": "geov",
   "version": "0.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "build": "npm run build-min",
     "build-dist": "rm -rf dist && mkdir dist && rollup -c",
@@ -35,8 +34,7 @@
     "uglify-js": "^3.1.10"
   },
   "dependencies": {
-    "es6-tween": "^4.1.0",
     "three": "^0.89.0",
-    "three-trackballcontrols": "0.0.6"
+    "map-camera-controls": "^0.1.3"
   }
 }

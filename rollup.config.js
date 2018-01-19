@@ -16,7 +16,6 @@ export default {
     plugins: [
         postCss(),
         resolve(),
-        commonJs(),
         glsl({
             include: 'src/shaders/*.glsl',
             sourceMap: false
