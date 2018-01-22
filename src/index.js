@@ -3,17 +3,20 @@ import './assets/css/geov.css';
 import * as THREE from 'three';
 import MapControls from 'map-camera-controls';
 
-import atomLayer from './layer/atom-layer';
-import cloudLayer from './layer/cloud-layer';
-import imageLayer from './layer/image-layer';
-import starLayer from './layer/star-layer';
+import atomLayer from './layers/atom-layer';
+import cloudLayer from './layers/cloud-layer';
+import imageLayer from './layers/image-layer';
+import starLayer from './layers/star-layer';
+import tileLayer from './layers/tileLayer/tile-layer';
 
 const GEOV = {
     resizeCanvas: resizeCanvas
 };
+
 // Holds component state
 const STATE = Object.assign({}, {}, {
     radius: 6371,
+    zoom: 18.7,
     layers: [],
     initialized: false
 });
@@ -131,7 +134,8 @@ function initStatic(nodeElement, options) {
 };
 
 function setupGlobe() {
-    imageLayer.addToGlobe(STATE);
+    tileLayer.addToGlobe(STATE);
+    // imageLayer.addToGlobe(STATE);
     cloudLayer.addToGlobe(STATE);
     atomLayer.addToGlobe(STATE);
     starLayer.addToGlobe(STATE);

@@ -45513,7 +45513,6 @@ var cloudLayer = {
         imageMesh.geometry = new SphereGeometry(STATE.radius * 1.032, 128, 128);
         imageMesh.material = new MeshPhongMaterial({
             side: DoubleSide,
-            depthWrite: false,
             transparent: true
         });
         imageMesh.rotation.y = 3;
@@ -45528,36 +45527,9 @@ var cloudLayer = {
         STATE.layers.push(this);
     },
     update: function update(STATE) {
-        imageMesh.material.opacity = STATE.camera.position.length() / STATE.radius * 0.5;
+        imageMesh.material.opacity = STATE.controls.zoom * STATE.controls.zoom * 0.0004;
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
-    }
-};
-
-var loader$1 = new TextureLoader();
-
-var imageLayer = {
-    addToGlobe: function addToGlobe(STATE) {
-        var imageMesh = new Mesh(new SphereGeometry(STATE.radius, 128, 128), new MeshPhongMaterial({
-            bumpScale: 0.5,
-            specular: new Color('grey'),
-            shininess: 10
-        }));
-        imageMesh.rotation.y = 3;
-        imageMesh.receiveShadow = true;
-
-        loader$1.load('textures/2_no_clouds_4k.jpg', function (t) {
-            t.anisotropy = 16;
-            t.wrapS = t.wrapT = RepeatWrapping;
-            imageMesh.material.map = t;
-            loader$1.load('textures/elev_bump_4k.jpg', function (t) {
-                t.anisotropy = 16;
-                t.wrapS = t.wrapT = RepeatWrapping;
-                imageMesh.material.bumpMap = t;
-                STATE.scene.add(imageMesh);
-            });
-        });
-        STATE.layers.push(this);
     }
 };
 
@@ -45582,12 +45554,207 @@ var starLayer = {
     }
 };
 
+// tile grid system
+var PI = 3.141592653589793;
+var PI2 = PI * 2;
+
+function getTileInfo(zoom, size, row, col, phiLength, thetaLength) {
+    row = (row + size) % size;
+    col = (col + size) % size;
+    return {
+        id: zoom + '-' + col + '-' + row,
+        z: zoom,
+        col: col,
+        row: row,
+        phiStart: row * (PI / size),
+        phiLength: phiLength,
+        thetaStart: col * (PI2 / size),
+        thetaLength: thetaLength
+    };
+}
+
+var tileGrid = {
+    getTileInfoBySpherical: function getTileInfoBySpherical(level, phi, theta) {
+        var zoom = Math.round(level);
+        var size = Math.pow(2, zoom);
+        while (theta < 0) {
+            theta += PI2;
+        }theta = theta % PI2;
+        var x = Math.floor(theta / (PI2 / size));
+        var y = Math.floor(phi / (PI / size));
+        var tileId = zoom + '-' + x + '-' + y;
+        return {
+            id: tileId,
+            z: zoom,
+            col: x,
+            row: y,
+            phiStart: y * (PI / size),
+            phiLength: PI / size,
+            thetaStart: x * (PI2 / size),
+            thetaLength: PI2 / size
+        };
+    },
+    getTilesByRange: function getTilesByRange(tileInfo, range) {
+        var zoom = tileInfo.z;
+        var size = Math.pow(2, zoom);
+        var dx = PI2 / size;
+        var dy = PI / size;
+        var dcol = Math.ceil(range / dx);
+        var drow = Math.ceil(range / dy);
+        var tiles = [];
+        for (var row = 0; row <= drow; row++) {
+            for (var col = 0; col <= dcol; col++) {
+                tiles.push(getTileInfo(zoom, size, tileInfo.row + row, tileInfo.col + col, tileInfo.phiLength, tileInfo.thetaLength));
+                if (col > 0) {
+                    tiles.push(getTileInfo(zoom, size, tileInfo.row + row, tileInfo.col - col, tileInfo.phiLength, tileInfo.thetaLength));
+                }
+                if (row > 0) {
+                    tiles.push(getTileInfo(zoom, size, tileInfo.row - row, tileInfo.col + col, tileInfo.phiLength, tileInfo.thetaLength));
+                }
+                if (col > 0 && row > 0) {
+                    tiles.push(getTileInfo(zoom, size, tileInfo.row - row, tileInfo.col - col, tileInfo.phiLength, tileInfo.thetaLength));
+                }
+            }
+        }
+
+        return tiles;
+    }
+};
+
+function numerationSystemTo10(numSys, strNum) {
+    var sum = 0;
+    for (var i = 0; i < strNum.length; i++) {
+        var level = strNum.length - 1 - i;
+        var key = parseInt(strNum[i]);
+        sum += key * Math.pow(numSys, level);
+    }
+    return sum;
+}
+
+var tileProvider = {
+    // Bing Map
+    getTileUrl: function getTileUrl(level, row, column) {
+        var url = "";
+        var tileX = column;
+        var tileY = row;
+        var strTileX2 = tileX.toString(2);
+        var strTileY2 = tileY.toString(2);
+        var delta = strTileX2.length - strTileY2.length;
+        var i = 0;
+        if (delta > 0) {
+            for (i = 0; i < delta; i++) {
+                strTileY2 = '0' + strTileY2;
+            }
+        } else if (delta < 0) {
+            delta = -delta;
+            for (i = 0; i < delta; i++) {
+                strTileX2 = '0' + strTileX2;
+            }
+        }
+        var strMerge2 = "";
+        for (i = 0; i < strTileY2.length; i++) {
+            var charY = strTileY2[i];
+            var charX = strTileX2[i];
+            strMerge2 += charY + charX;
+        }
+        var strMerge4 = numerationSystemTo10(2, strMerge2).toString(4);
+        if (strMerge4.length < level) {
+            delta = level - strMerge4.length;
+            for (i = 0; i < delta; i++) {
+                strMerge4 = '0' + strMerge4;
+            }
+        }
+        var sum = level + row + column;
+        var serverIdx = sum % 8; //0,1,2,3,4,5,6,7
+        //var styles = ['a','r','h']
+        url = '//ecn.t' + serverIdx + '.tiles.virtualearth.net/tiles/a' + strMerge4 + '.jpeg?g=1239&mkt=en-us';
+        return url;
+    }
+};
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var loader$3 = new TextureLoader();
+
+var Tile = function Tile(tileInfo, earthRadius) {
+    _classCallCheck(this, Tile);
+
+    this.zoom = tileInfo.z;
+    this.row = tileInfo.row;
+    this.col = tileInfo.col;
+
+    // todo webMercatorToDegreeGeographic
+    this.geometry = new SphereBufferGeometry(earthRadius, 32, 32, tileInfo.thetaStart, tileInfo.thetaLength, tileInfo.phiStart, tileInfo.phiLength);
+    this.url = tileProvider.getTileUrl(this.zoom, this.row, this.col);
+
+    var _this = this;
+    loader$3.load(this.url, function (t) {
+        _this.mesh = new Mesh(_this.geometry, new MeshPhongMaterial({
+            map: t,
+            shininess: 20,
+            side: DoubleSide
+        }));
+        _this.mesh.tileId = tileInfo.id;
+    });
+};
+
+var cache = {};
+
+var tileCache = {
+    use: function use(tileInfo) {
+        var tile = cache[tileInfo.id];
+        if (tile) return tile;
+        cache[tileInfo.id] = new Tile(tileInfo, this.earthRadius);
+        return cache[tileInfo.id];
+    }
+};
+
+var controls = void 0;
+var tiles = [];
+
+function loadTiles() {
+    if (!controls) return;
+
+    var zoom = controls.zoom;
+    var coord = controls.coord;
+    var tileInfo = tileGrid.getTileInfoBySpherical(Math.max(2, 20 - zoom), coord.y, coord.x);
+    var range = controls.getVisibleExtent();
+    var tileInfos = tileGrid.getTilesByRange(tileInfo, range);
+    tiles = [];
+    tileInfos.forEach(function (tileInfo) {
+        tiles.push(tileCache.use(tileInfo));
+    });
+}
+
+var tileLayer = {
+    addToGlobe: function addToGlobe(STATE) {
+        STATE.controls.addEventListener('change', loadTiles);
+        controls = STATE.controls;
+        tileCache.earthRadius = controls.earthRadius;
+        STATE.layers.push(this);
+
+        loadTiles();
+    },
+    update: function update(STATE) {
+        // add update remove
+        tiles.forEach(function (tile) {
+            if (!tile.inUse && tile.mesh) {
+                STATE.scene.add(tile.mesh);
+                tile.inUse = true;
+            }
+        });
+        // todo
+    }
+};
+
 var GEOV = {
     resizeCanvas: resizeCanvas
 };
+
 // Holds component state
 var STATE = Object.assign({}, {}, {
     radius: 6371,
+    zoom: 18.7,
     layers: [],
     initialized: false
 });
@@ -45708,7 +45875,8 @@ function initStatic(nodeElement, options) {
 }
 
 function setupGlobe() {
-    imageLayer.addToGlobe(STATE);
+    tileLayer.addToGlobe(STATE);
+    // imageLayer.addToGlobe(STATE);
     cloudLayer.addToGlobe(STATE);
     atomLayer.addToGlobe(STATE);
     starLayer.addToGlobe(STATE);

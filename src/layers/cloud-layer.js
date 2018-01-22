@@ -8,7 +8,6 @@ export default {
         imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 1.032, 128, 128);
         imageMesh.material = new THREE.MeshPhongMaterial({
             side: THREE.DoubleSide,
-            depthWrite: false,
             transparent: true
         });
         imageMesh.rotation.y = 3;
@@ -23,7 +22,7 @@ export default {
         STATE.layers.push(this);
     },
     update: function (STATE) {
-        imageMesh.material.opacity = STATE.camera.position.length() / STATE.radius * 0.5;
+        imageMesh.material.opacity = STATE.controls.zoom * STATE.controls.zoom * 0.0004;
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
     }
