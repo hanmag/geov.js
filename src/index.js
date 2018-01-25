@@ -109,6 +109,7 @@ function initStatic(nodeElement, options) {
     // Add camera interaction
     STATE.controls = new MapControls(STATE.camera, STATE.renderer.domElement, STATE);
     STATE.controls.maxZoom = 19;
+    STATE.controls.minZoom = 2;
 
     // Kick-off renderer
     (function animate() {

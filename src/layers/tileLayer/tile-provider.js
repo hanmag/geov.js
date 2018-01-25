@@ -1,16 +1,8 @@
-function numerationSystemTo10(numSys, strNum) {
-    var sum = 0;
-    for (var i = 0; i < strNum.length; i++) {
-        var level = strNum.length - 1 - i;
-        var key = parseInt(strNum[i]);
-        sum += key * Math.pow(numSys, level);
-    }
-    return sum;
-}
+import MathUtils from '../../util/MathUtils';
 
 export default {
     // Bing Map
-    getTileUrl: function (level, row, column) {
+    getBingTileUrl: function (level, row, column) {
         var url = "";
         var tileX = column;
         var tileY = row;
@@ -34,7 +26,7 @@ export default {
             var charX = strTileX2[i];
             strMerge2 += charY + charX;
         }
-        var strMerge4 = numerationSystemTo10(2, strMerge2).toString(4);
+        var strMerge4 = MathUtils.numerationSystemTo10(2, strMerge2).toString(4);
         if (strMerge4.length < level) {
             delta = level - strMerge4.length;
             for (i = 0; i < delta; i++) {

@@ -22,7 +22,8 @@ export default {
         STATE.layers.push(this);
     },
     update: function (STATE) {
-        imageMesh.material.opacity = STATE.controls.zoom * STATE.controls.zoom * 0.0004;
+        imageMesh.material.opacity = (STATE.controls.zoom - 13) * 0.07;
+        if (imageMesh.material.opacity < 0.1) imageMesh.material.opacity = 0;
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
     }

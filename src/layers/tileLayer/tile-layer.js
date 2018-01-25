@@ -1,40 +1,90 @@
+import * as THREE from 'three';
+import MathUtils from '../../util/MathUtils';
 import tileGrid from './tile-grid';
-import tileCache from './tile-cache';
 
-let controls;
-let tiles = [];
+let controls, tiles;
+let tilesInScene = {};
+let needUpdate = false,
+    inControl = false;
 
-function loadTiles() {
+function loadTiles(force) {
     if (!controls) return;
 
-    var zoom = controls.zoom;
-    var coord = controls.coord;
-    var tileInfo = tileGrid.getTileInfoBySpherical(Math.max(2, 20 - zoom), coord.y, coord.x);
-    var range = controls.getVisibleExtent();
-    var tileInfos = tileGrid.getTilesByRange(tileInfo, range);
-    tiles = [];
-    tileInfos.forEach(tileInfo => {
-        tiles.push(tileCache.use(tileInfo));
-    });
+    if (force || (!needUpdate && !inControl)) {
+        inControl = true;
+
+        var zoom = controls.zoom;
+        var coord = controls.coord;
+        var range = controls.getVisibleExtent();
+
+        var result = tileGrid.getVisibleTiles(controls.earthRadius,
+            Math.round(Math.min(Math.max(3, 20 - zoom)), 18), coord.y, coord.x + MathUtils.HALFPI, range);
+
+        if (result) {
+            if (tiles) {
+                // 尚未加载完成 且 移出视野范围 的切片 停止加载
+                tiles.forEach(tile => {
+                    if (!tileGrid.isVisible(tile.id) && tile.state === 'loading') {
+                        tile.abort();
+                    }
+                });
+            }
+
+            tiles = result;
+
+            needUpdate = true;
+        }
+
+        inControl = false;
+    }
 }
 
 export default {
     addToGlobe: function (STATE) {
-        STATE.controls.addEventListener('change', loadTiles);
+        const imageMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(STATE.radius * 0.95, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0x444444
+            })
+        );
+        STATE.scene.add(imageMesh);
+
         controls = STATE.controls;
-        tileCache.earthRadius = controls.earthRadius;
+        controls.addEventListener('change', loadTiles);
+        controls.addEventListener('end', () => loadTiles(true));
         STATE.layers.push(this);
 
         loadTiles();
     },
     update: function (STATE) {
-        // add update remove
+        if (!needUpdate) return;
+
+        // add
+        if (!tiles) return;
+        let loadingCount = 0;
         tiles.forEach(tile => {
-            if (!tile.inUse && tile.mesh) {
+            if (!tilesInScene[tile.id] && tile.state === 'loaded') {
                 STATE.scene.add(tile.mesh);
-                tile.inUse = true;
+                tilesInScene[tile.id] = tile.mesh;
+            } else if (tile.state === 'loading') {
+                // when is loading ?
+                loadingCount++;
+            } else if (!tile.state) {
+                tile.load();
+                loadingCount++;
             }
         });
-        // todo
+
+        needUpdate = loadingCount > 0;
+        if (!needUpdate) {
+            // remove
+            Object.keys(tilesInScene).forEach(tileId => {
+                if (!tileGrid.isVisible(tileId)) {
+                    STATE.scene.remove(tilesInScene[tileId]);
+                    delete tilesInScene[tileId];
+                }
+            });
+            console.log('complete');
+        }
     }
 };

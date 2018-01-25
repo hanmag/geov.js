@@ -45195,7 +45195,7 @@ var MapControls = MapControls = function (object, domElement, options) {
     };
 
     this.getVisibleExtent = function () {
-        var theta = (this.zoom * this.zoom) * Math.min(90 / (90 - this.pitch), 1.5) / 180;
+        var theta = Math.min(90 / (90 - this.pitch), 2);
         return theta;
     };
 
@@ -45527,7 +45527,8 @@ var cloudLayer = {
         STATE.layers.push(this);
     },
     update: function update(STATE) {
-        imageMesh.material.opacity = STATE.controls.zoom * STATE.controls.zoom * 0.0004;
+        imageMesh.material.opacity = (STATE.controls.zoom - 13) * 0.07;
+        if (imageMesh.material.opacity < 0.1) imageMesh.material.opacity = 0;
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
     }
@@ -45554,86 +45555,74 @@ var starLayer = {
     }
 };
 
-// tile grid system
 var PI = 3.141592653589793;
 var PI2 = PI * 2;
+var HALFPI = PI / 2;
+var MAXPHI = 1.2626272556789115; // Math.atan(PI)
 
-function getTileInfo(zoom, size, row, col, phiLength, thetaLength) {
-    row = (row + size) % size;
-    col = (col + size) % size;
-    return {
-        id: zoom + '-' + col + '-' + row,
-        z: zoom,
-        col: col,
-        row: row,
-        phiStart: row * (PI / size),
-        phiLength: phiLength,
-        thetaStart: col * (PI2 / size),
-        thetaLength: thetaLength
-    };
-}
-
-var tileGrid = {
-    getTileInfoBySpherical: function getTileInfoBySpherical(level, phi, theta) {
-        var zoom = Math.round(level);
-        var size = Math.pow(2, zoom);
-        while (theta < 0) {
-            theta += PI2;
-        }theta = theta % PI2;
-        var x = Math.floor(theta / (PI2 / size));
-        var y = Math.floor(phi / (PI / size));
-        var tileId = zoom + '-' + x + '-' + y;
-        return {
-            id: tileId,
-            z: zoom,
-            col: x,
-            row: y,
-            phiStart: y * (PI / size),
-            phiLength: PI / size,
-            thetaStart: x * (PI2 / size),
-            thetaLength: PI2 / size
-        };
-    },
-    getTilesByRange: function getTilesByRange(tileInfo, range) {
-        var zoom = tileInfo.z;
-        var size = Math.pow(2, zoom);
-        var dx = PI2 / size;
-        var dy = PI / size;
-        var dcol = Math.ceil(range / dx);
-        var drow = Math.ceil(range / dy);
-        var tiles = [];
-        for (var row = 0; row <= drow; row++) {
-            for (var col = 0; col <= dcol; col++) {
-                tiles.push(getTileInfo(zoom, size, tileInfo.row + row, tileInfo.col + col, tileInfo.phiLength, tileInfo.thetaLength));
-                if (col > 0) {
-                    tiles.push(getTileInfo(zoom, size, tileInfo.row + row, tileInfo.col - col, tileInfo.phiLength, tileInfo.thetaLength));
-                }
-                if (row > 0) {
-                    tiles.push(getTileInfo(zoom, size, tileInfo.row - row, tileInfo.col + col, tileInfo.phiLength, tileInfo.thetaLength));
-                }
-                if (col > 0 && row > 0) {
-                    tiles.push(getTileInfo(zoom, size, tileInfo.row - row, tileInfo.col - col, tileInfo.phiLength, tileInfo.thetaLength));
-                }
-            }
+var MathUtils = {
+    PI: PI,
+    PI2: PI2,
+    HALFPI: HALFPI,
+    MAXPHI: MAXPHI,
+    numerationSystemTo10: function numerationSystemTo10(numSys, strNum) {
+        var sum = 0;
+        for (var i = 0; i < strNum.length; i++) {
+            var level = strNum.length - 1 - i;
+            var key = parseInt(strNum[i]);
+            sum += key * Math.pow(numSys, level);
         }
-
-        return tiles;
+        return sum;
     }
 };
 
-function numerationSystemTo10(numSys, strNum) {
-    var sum = 0;
-    for (var i = 0; i < strNum.length; i++) {
-        var level = strNum.length - 1 - i;
-        var key = parseInt(strNum[i]);
-        sum += key * Math.pow(numSys, level);
-    }
-    return sum;
+// 切片缓存
+var TILE_CACHE = {};
+// 切片访问队列，记录切片访问次序
+var TILEID_QUEUE = [];
+// 最大可维护切片数量
+var MAX_TILE_SIZE = 1000;
+
+// 更新最近访问列表顺序
+function moveToEnd(tileId) {
+    var index = TILEID_QUEUE.find(function (ele) {
+        return ele === tileId;
+    });
+    TILEID_QUEUE = TILEID_QUEUE.concat(TILEID_QUEUE.splice(index, 1));
 }
+
+// 添加新的切片，删除最早访问的部分切片
+function addToQueue(tileId) {
+    TILEID_QUEUE.push(tileId);
+    if (TILEID_QUEUE.length > MAX_TILE_SIZE) {
+        for (var index = 0; index < MAX_TILE_SIZE * 0.3; index++) {
+            var id = TILEID_QUEUE.shift();
+            TILE_CACHE[id].dispose();
+            delete TILE_CACHE[id];
+        }
+    }
+}
+
+var tileCache = {
+    get: function get(tileId) {
+        var tile = TILE_CACHE[tileId];
+        if (tile) {
+            moveToEnd(tileId);
+        }
+        return tile;
+    },
+    add: function add(tile) {
+        addToQueue(tile.id);
+        TILE_CACHE[tile.id] = tile;
+    },
+    size: function size() {
+        return TILEID_QUEUE.length;
+    }
+};
 
 var tileProvider = {
     // Bing Map
-    getTileUrl: function getTileUrl(level, row, column) {
+    getBingTileUrl: function getBingTileUrl(level, row, column) {
         var url = "";
         var tileX = column;
         var tileY = row;
@@ -45657,7 +45646,7 @@ var tileProvider = {
             var charX = strTileX2[i];
             strMerge2 += charY + charX;
         }
-        var strMerge4 = numerationSystemTo10(2, strMerge2).toString(4);
+        var strMerge4 = MathUtils.numerationSystemTo10(2, strMerge2).toString(4);
         if (strMerge4.length < level) {
             delta = level - strMerge4.length;
             for (i = 0; i < delta; i++) {
@@ -45672,78 +45661,314 @@ var tileProvider = {
     }
 };
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var loader$3 = new TextureLoader();
+var Tile = function () {
+    function Tile(radius, zoom, size, col, row, width) {
+        _classCallCheck(this, Tile);
 
-var Tile = function Tile(tileInfo, earthRadius) {
-    _classCallCheck(this, Tile);
+        this.id = zoom + '-' + col + '-' + row;
+        this.radius = radius;
+        this.zoom = zoom;
+        this.size = size;
+        this.row = row;
+        this.col = col;
+        this.width = width;
 
-    this.zoom = tileInfo.z;
-    this.row = tileInfo.row;
-    this.col = tileInfo.col;
+        this.phiStart = row === 0 ? 0 : MathUtils.HALFPI + Math.atan((2 * row / size - 1) * MathUtils.PI);
+        this.height = row === size - 1 ? MathUtils.PI - this.phiStart : MathUtils.HALFPI + Math.atan((2 * (row + 1) / size - 1) * MathUtils.PI) - this.phiStart;
 
-    // todo webMercatorToDegreeGeographic
-    this.geometry = new SphereBufferGeometry(earthRadius, 32, 32, tileInfo.thetaStart, tileInfo.thetaLength, tileInfo.phiStart, tileInfo.phiLength);
-    this.url = tileProvider.getTileUrl(this.zoom, this.row, this.col);
+        this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
+        // this.load();
+    }
 
-    var _this = this;
-    loader$3.load(this.url, function (t) {
-        _this.mesh = new Mesh(_this.geometry, new MeshPhongMaterial({
-            map: t,
-            shininess: 20,
-            side: DoubleSide
-        }));
-        _this.mesh.tileId = tileInfo.id;
-    });
-};
+    _createClass(Tile, [{
+        key: 'load',
+        value: function load() {
+            if (this.state) return;
 
-var cache = {};
+            if (!this.request) {
+                this.request = new XMLHttpRequest();
+                this.request.timeout = 5000; // time in milliseconds
+            }
 
-var tileCache = {
-    use: function use(tileInfo) {
-        var tile = cache[tileInfo.id];
-        if (tile) return tile;
-        cache[tileInfo.id] = new Tile(tileInfo, this.earthRadius);
-        return cache[tileInfo.id];
+            var _this = this;
+            this.state = 'loading';
+            this.request.open('GET', this.url, true);
+            this.request.responseType = 'blob';
+            this.request.onload = function () {
+                var blob = this.response;
+                var img = document.createElement('img');
+                img.onload = function (e) {
+                    window.URL.revokeObjectURL(img.src); // 清除释放
+
+                    _this.geometry = new SphereBufferGeometry(_this.radius, 16, 16, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                    _this.texture = new Texture();
+                    _this.texture.image = img;
+                    _this.texture.format = RGBFormat;
+                    _this.texture.needsUpdate = true;
+
+                    _this.material = new MeshLambertMaterial({
+                        map: _this.texture,
+                        side: DoubleSide
+                    });
+                    _this.mesh = new Mesh(_this.geometry, _this.material);
+                    _this.mesh.tileId = _this.id;
+                    _this.state = 'loaded';
+                };
+
+                img.src = window.URL.createObjectURL(blob);
+            };
+            this.request.ontimeout = function () {
+                _this.state = null;
+                console.warn(_this.id, 'time out');
+            };
+            this.request.onerror = function () {
+                _this.state = null;
+            };
+            this.request.send();
+        }
+    }, {
+        key: 'abort',
+        value: function abort() {
+            if (this.request) {
+                this.request.abort();
+                this.request = null;
+            }
+            this.state = null;
+        }
+    }, {
+        key: 'dispose',
+        value: function dispose() {
+            this.abort();
+            if (this.geometry) this.geometry.dispose();
+            this.geometry = null;
+            if (this.material) {
+                this.material.dispose();
+                this.texture.dispose();
+                this.material = null;
+                this.texture = null;
+            }
+            // this.mesh.dispose();
+            this.mesh = null;
+        }
+    }]);
+
+    return Tile;
+}();
+
+var lastTile = void 0;
+var lastTiles = void 0;
+var lastRange = 0;
+
+// 正常球面纬度 转换为 墨卡托投影球面纬度
+// -PI/2 < phi < PI/2
+function webmercatorToGeoDegreePhi(phi) {
+    if (phi < -MathUtils.MAXPHI) return -MathUtils.HALFPI + 0.00001;
+    if (phi > MathUtils.MAXPHI) return MathUtils.HALFPI - 0.00001;
+    return Math.tan(phi) / 2;
+}
+
+function genTile(radius, zoom, size, col, row, width) {
+    var tileId = zoom + '-' + col + '-' + row;
+    var tile = tileCache.get(tileId);
+    if (!tile) {
+        tile = new Tile(radius, zoom, size, col, row, width);
+        tileCache.add(tile);
+    }
+
+    return tile;
+}
+
+function getTile(radius, zoom, phi, theta) {
+    while (theta < 0) {
+        theta += MathUtils.PI2;
+    }theta = theta % MathUtils.PI2;
+
+    phi -= MathUtils.HALFPI;
+    phi = webmercatorToGeoDegreePhi(phi) + MathUtils.HALFPI;
+
+    var size = Math.pow(2, zoom);
+    var unit = MathUtils.PI / size;
+    var col = Math.floor(theta / (2 * unit));
+    var row = Math.floor(phi / unit);
+    var width = 2 * unit;
+
+    return genTile(radius, zoom, size, col, row, width);
+}
+
+function reviseRowAndCol(size, row, col) {
+    var size2 = size * 2;
+    var sizeh = Math.floor(size / 2);
+    if (row < 0) {
+        row = -1 - row;
+        col += sizeh;
+    }
+    row = (row + size2) % size2;
+    if (row > size - 1) {
+        row = size2 - row - 1;
+        col += sizeh;
+    }
+    col = (col + size2) % size;
+
+    return [row, col];
+}
+
+function getRoundTiles(tile, range) {
+    var offsetY = Math.abs(tile.row / tile.size - 0.5) * 10;
+    var roundSize = Math.floor((tile.zoom < 5 ? tile.zoom + 3 : 4 + offsetY) * range);
+    var tiles = [],
+        tileIds = [];
+    for (var dr = 0; dr < roundSize; dr++) {
+        for (var dc = 0; dc < roundSize; dc++) {
+            var row_col = reviseRowAndCol(tile.size, tile.row + dr, tile.col + dc);
+            var t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
+            if (tileIds.indexOf(t.id) < 0) {
+                tileIds.push(t.id);
+                tiles.push(t);
+            }
+
+            if (dc > 0) {
+                row_col = reviseRowAndCol(tile.size, tile.row + dr, tile.col - dc);
+                t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
+                if (tileIds.indexOf(t.id) < 0) {
+                    tileIds.push(t.id);
+                    tiles.push(t);
+                }
+            }
+            if (dr > 0) {
+                row_col = reviseRowAndCol(tile.size, tile.row - dr, tile.col + dc);
+                t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
+                if (tileIds.indexOf(t.id) < 0) {
+                    tileIds.push(t.id);
+                    tiles.push(t);
+                }
+            }
+            if (dc > 0 && dr > 0) {
+                row_col = reviseRowAndCol(tile.size, tile.row - dr, tile.col - dc);
+                t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
+                if (tileIds.indexOf(t.id) < 0) {
+                    tileIds.push(t.id);
+                    tiles.push(t);
+                }
+            }
+        }
+    }
+    console.log(tile.zoom, roundSize, tiles.length, tileCache.size());
+    return tiles;
+}
+
+var tileGrid = {
+    getVisibleTiles: function getVisibleTiles(radius, zoom, phi, theta, range) {
+        if (this.using) return false;
+        this.using = true;
+
+        var tile = getTile(radius, zoom, phi, theta);
+        if (lastTile && lastTile.id === tile.id && Math.abs(lastRange - range) < 0.1) {
+            this.using = false;
+            return false;
+        }
+        lastTile = tile;
+        lastRange = range;
+
+        var tiles = getRoundTiles(tile, range);
+        lastTiles = tiles;
+
+        this.using = false;
+        return tiles;
+    },
+    isVisible: function isVisible(tileId) {
+        return lastTiles && lastTiles.find(function (tile) {
+            return tile.id === tileId;
+        });
     }
 };
 
 var controls = void 0;
-var tiles = [];
+var tiles = void 0;
+var tilesInScene = {};
+var needUpdate = false;
+var inControl = false;
 
-function loadTiles() {
+function loadTiles(force) {
     if (!controls) return;
 
-    var zoom = controls.zoom;
-    var coord = controls.coord;
-    var tileInfo = tileGrid.getTileInfoBySpherical(Math.max(2, 20 - zoom), coord.y, coord.x);
-    var range = controls.getVisibleExtent();
-    var tileInfos = tileGrid.getTilesByRange(tileInfo, range);
-    tiles = [];
-    tileInfos.forEach(function (tileInfo) {
-        tiles.push(tileCache.use(tileInfo));
-    });
+    if (force || !needUpdate && !inControl) {
+        inControl = true;
+
+        var zoom = controls.zoom;
+        var coord = controls.coord;
+        var range = controls.getVisibleExtent();
+
+        var result = tileGrid.getVisibleTiles(controls.earthRadius, Math.round(Math.min(Math.max(3, 20 - zoom)), 18), coord.y, coord.x + MathUtils.HALFPI, range);
+
+        if (result) {
+            if (tiles) {
+                // 尚未加载完成 且 移出视野范围 的切片 停止加载
+                tiles.forEach(function (tile) {
+                    if (!tileGrid.isVisible(tile.id) && tile.state === 'loading') {
+                        tile.abort();
+                    }
+                });
+            }
+
+            tiles = result;
+
+            needUpdate = true;
+        }
+
+        inControl = false;
+    }
 }
 
 var tileLayer = {
     addToGlobe: function addToGlobe(STATE) {
-        STATE.controls.addEventListener('change', loadTiles);
+        var imageMesh = new Mesh(new SphereGeometry(STATE.radius * 0.95, 32, 32), new MeshBasicMaterial({
+            color: 0x444444
+        }));
+        STATE.scene.add(imageMesh);
+
         controls = STATE.controls;
-        tileCache.earthRadius = controls.earthRadius;
+        controls.addEventListener('change', loadTiles);
+        controls.addEventListener('end', function () {
+            return loadTiles(true);
+        });
         STATE.layers.push(this);
 
         loadTiles();
     },
     update: function update(STATE) {
-        // add update remove
+        if (!needUpdate) return;
+
+        // add
+        if (!tiles) return;
+        var loadingCount = 0;
         tiles.forEach(function (tile) {
-            if (!tile.inUse && tile.mesh) {
+            if (!tilesInScene[tile.id] && tile.state === 'loaded') {
                 STATE.scene.add(tile.mesh);
-                tile.inUse = true;
+                tilesInScene[tile.id] = tile.mesh;
+            } else if (tile.state === 'loading') {
+                // when is loading ?
+                loadingCount++;
+            } else if (!tile.state) {
+                tile.load();
+                loadingCount++;
             }
         });
-        // todo
+
+        needUpdate = loadingCount > 0;
+        if (!needUpdate) {
+            // remove
+            Object.keys(tilesInScene).forEach(function (tileId) {
+                if (!tileGrid.isVisible(tileId)) {
+                    STATE.scene.remove(tilesInScene[tileId]);
+                    delete tilesInScene[tileId];
+                }
+            });
+            console.log('complete');
+        }
     }
 };
 
@@ -45850,6 +46075,7 @@ function initStatic(nodeElement, options) {
     // Add camera interaction
     STATE.controls = new MapControls$1(STATE.camera, STATE.renderer.domElement, STATE);
     STATE.controls.maxZoom = 19;
+    STATE.controls.minZoom = 2;
 
     // Kick-off renderer
     (function animate() {
