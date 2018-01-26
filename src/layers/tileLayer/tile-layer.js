@@ -15,10 +15,11 @@ function loadTiles(force) {
 
         var zoom = controls.zoom;
         var coord = controls.coord;
-        var range = controls.getVisibleExtent();
 
         var result = tileGrid.getVisibleTiles(controls.earthRadius,
-            Math.round(Math.min(Math.max(3, 20 - zoom)), 18), coord.y, coord.x + MathUtils.HALFPI, range);
+            Math.round(Math.min(Math.max(3, 20 - zoom)), 18),
+            coord.y, coord.x + MathUtils.HALFPI,
+            controls.pitch, controls.bearing);
 
         if (result) {
             if (tiles) {
@@ -49,9 +50,19 @@ export default {
         );
         STATE.scene.add(imageMesh);
 
+        let state = 'macro';
         controls = STATE.controls;
         controls.addEventListener('change', loadTiles);
-        controls.addEventListener('end', () => loadTiles(true));
+        controls.addEventListener('end', () => {
+            if (controls.pitch > 30 && state === 'macro') {
+                imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 0.99, 64, 64);
+                state = 'micro';
+            } else if (controls.pitch <= 30 && state === 'micro') {
+                imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 0.95, 32, 32);
+                state = 'macro';
+            }
+            loadTiles(true);
+        });
         STATE.layers.push(this);
 
         loadTiles();
