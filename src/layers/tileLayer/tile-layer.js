@@ -43,26 +43,17 @@ function loadTiles(force) {
 export default {
     addToGlobe: function (STATE) {
         const imageMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(STATE.radius * 0.95, 32, 32),
+            new THREE.SphereGeometry(STATE.radius * 0.99, 32, 32),
             new THREE.MeshBasicMaterial({
-                color: 0x444444
+                color: 0x444444,
+                side: THREE.BackSide
             })
         );
         STATE.scene.add(imageMesh);
 
-        let state = 'macro';
         controls = STATE.controls;
         controls.addEventListener('change', loadTiles);
-        controls.addEventListener('end', () => {
-            if (controls.pitch > 30 && state === 'macro') {
-                imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 0.99, 64, 64);
-                state = 'micro';
-            } else if (controls.pitch <= 30 && state === 'micro') {
-                imageMesh.geometry = new THREE.SphereGeometry(STATE.radius * 0.95, 32, 32);
-                state = 'macro';
-            }
-            loadTiles(true);
-        });
+        controls.addEventListener('end', () => loadTiles(true));
         STATE.layers.push(this);
 
         loadTiles();
