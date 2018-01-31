@@ -35,6 +35,6 @@
   },
   "dependencies": {
     "three": "^0.89.0",
-    "map-camera-controls": "^0.1.3"
+    "map-camera-controls": "^0.1.4"
   }
 }
