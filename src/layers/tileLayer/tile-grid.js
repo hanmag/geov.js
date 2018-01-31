@@ -19,6 +19,7 @@ function webmercatorToGeoDegreePhi(phi) {
     return Math.tan(phi) / 2;
 }
 
+// 通过缓存获取切片或创建新切片
 function genTile(radius, zoom, size, col, row, width) {
     var tileId = zoom + '-' + col + '-' + row;
     var tile = tileCache.get(tileId);
@@ -30,6 +31,7 @@ function genTile(radius, zoom, size, col, row, width) {
     return tile;
 }
 
+// 通过层级、横向/纵向角度定位切片
 function getTile(radius, zoom, phi, theta) {
     while (theta < 0)
         theta += MathUtils.PI2;
@@ -47,6 +49,7 @@ function getTile(radius, zoom, phi, theta) {
     return genTile(radius, zoom, size, col, row, width);
 }
 
+// 计算正确行列号
 function reviseRowAndCol(size, row, col) {
     var size2 = size * 2;
     var sizeh = Math.floor(size / 2);
@@ -64,61 +67,52 @@ function reviseRowAndCol(size, row, col) {
     return [row, col];
 }
 
-// 根据视线视角计算可视切片
-function getRoundTiles(tile, pitch, bearing) {
-    const offsetY = Math.abs(tile.row / tile.size - 0.5) * 10;
-    const pitchRatio = 270 / (270 - pitch);
-    // 靠近高纬度、倾斜角大的情况下，可视切片数量大
-    const roundSize = Math.floor(
-        (tile.zoom < 4 ? tile.zoom + 3 : 4 + offsetY) * pitchRatio
-    );
-
-    const centerRow = Math.round(tile.row + Math.cos(bearing) * (pitchRatio - 1) * tile.zoom * tile.zoom * 0.05),
-        centerCol = Math.round(tile.col + Math.sin(bearing) * (pitchRatio - 1) * tile.zoom * tile.zoom * 0.05);
-    const tiles = [],
-        tileIds = [];
-    for (let dr = 0; dr < roundSize; dr++) {
-        for (let dc = 0; dc < roundSize; dc++) {
-            if (tiles.length > 100 * pitchRatio) break;
-            let row_col = reviseRowAndCol(tile.size, centerRow + dr, centerCol + dc);
-            let _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-            if (tileIds.indexOf(_id) < 0) {
-                let t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                tileIds.push(t.id);
-                tiles.push(t);
-            }
-
-            if (dc > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow + dr, centerCol - dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    let t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(t.id);
-                    tiles.push(t);
-                }
-            }
-            if (dr > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow - dr, centerCol + dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    let t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(t.id);
-                    tiles.push(t);
-                }
-            }
-            if (dc > 0 && dr > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow - dr, centerCol - dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    let t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(t.id);
-                    tiles.push(t);
-                }
-            }
+// 计算当前可见切片范围，结果为行列号数组
+function calcRange(centerTile, pitch, bearing) {
+    // 纬度偏移量 ( 0 ~ 1 )，越靠近高纬度，可视切片数量越大
+    const offsetY = Math.abs(((centerTile.row + 0.5) / centerTile.size) - 0.5) * 2;
+    // 显示级别权值 ( 0 ~ 1 )，级别越小权值越大
+    const zoomRatio = (20 - centerTile.zoom) / 20;
+    // 倾斜度 ( 0 ~ 1 )，倾斜度越大，可视切片数量越大
+    const pitchRatio = 160 / (160 - pitch) - 1;
+    // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
+    const bearingRatio = 0.5 + (Math.cos(bearing) * (0.5 - ((centerTile.row + 0.5) / centerTile.size)));
+    // 可见行数
+    const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 2.8) + (pitchRatio * 2.4) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
+    // 可见列数
+    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 2.8) + (pitchRatio * 2.4) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
+    // 中心行列号
+    const centerRow = centerTile.row;
+    const centerCol = centerTile.col;
+    let row_cols = [[centerRow, centerCol]];
+    let tileIds=[centerRow + '-' + centerCol];
+    let pushRowCol = function(row_col) {
+        if(tileIds.indexOf(row_col[0] + '-' + row_col[1]) < 0) {
+            tileIds.push(row_col[0] + '-' + row_col[1]);
+            row_cols.push(row_col);
+        }
+    };
+    for (let index = 1; index <= Math.max(rowCount, colCount); index++) {
+        for (let i = index; i > -1; i--) {
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, index), centerCol + Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, index), centerCol - Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, index), centerCol + Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, index), centerCol - Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, i), centerCol + Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol + Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
         }
     }
-    console.log(tile.zoom, tile.row, tile.col, centerRow, centerCol, roundSize, tiles.length, pitchRatio);
-    return tiles;
+    console.log(rowCount, colCount, row_cols.length);
+    return row_cols;
+}
+
+// 根据可视范围获取切片
+function getRoundTiles(tile, row_cols) {
+    return row_cols.map(row_col =>
+        genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width)
+    );
 }
 
 export default {
@@ -137,7 +131,7 @@ export default {
             bearing: bearing
         };
 
-        visibleTiles = getRoundTiles(tile, pitch, bearing);
+        visibleTiles = getRoundTiles(tile, calcRange(tile, pitch, bearing));
         return visibleTiles;
     },
     isVisible: function (tileId) {
