@@ -71,21 +71,21 @@ function reviseRowAndCol(size, row, col) {
 function calcRange(centerTile, pitch, bearing) {
     // 纬度偏移量 ( 0 ~ 1 )，越靠近高纬度，可视切片数量越大
     const offsetY = Math.abs(((centerTile.row + 0.5) / centerTile.size) - 0.5) * 2;
-    // 显示级别权值 ( 0 ~ 1 )，级别越小权值越大
-    const zoomRatio = (20 - centerTile.zoom) / 20;
+    // 显示级别权值 ( 0 | 1 )，级别靠近最大或最小时为1
+    const zoomRatio = centerTile.zoom < 4 || centerTile.zoom > 15 ? 1 : 0;
     // 倾斜度 ( 0 ~ 1 )，倾斜度越大，可视切片数量越大
     const pitchRatio = 160 / (160 - pitch) - 1;
     // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
     const bearingRatio = 0.5 + (Math.cos(bearing) * (0.5 - ((centerTile.row + 0.5) / centerTile.size)));
     // 可见行数
-    const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 2.8) + (pitchRatio * 2.4) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
+    const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 3) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
     // 可见列数
-    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 2.8) + (pitchRatio * 2.4) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
+    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 3) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
     // 中心行列号
     const centerRow = centerTile.row;
     const centerCol = centerTile.col;
     let row_cols = [[centerRow, centerCol]];
-    let tileIds=[centerRow + '-' + centerCol];
+    let tileIds = [centerRow + '-' + centerCol];
     let pushRowCol = function(row_col) {
         if(tileIds.indexOf(row_col[0] + '-' + row_col[1]) < 0) {
             tileIds.push(row_col[0] + '-' + row_col[1]);

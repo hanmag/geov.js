@@ -7,6 +7,8 @@ let tilesInScene = {};
 let needUpdate = false,
     inControl = false;
 
+let imageMesh;
+
 function loadTiles(force) {
     if (!controls) return;
 
@@ -42,14 +44,13 @@ function loadTiles(force) {
 
 export default {
     addToGlobe: function (STATE) {
-        const imageMesh = new THREE.Mesh(
+        imageMesh = new THREE.Mesh(
             new THREE.SphereGeometry(STATE.radius * 0.99, 32, 32),
             new THREE.MeshBasicMaterial({
                 color: 0x444444,
-                side: THREE.BackSide
+                side: THREE.DoubleSide
             })
         );
-        STATE.scene.add(imageMesh);
 
         controls = STATE.controls;
         controls.addEventListener('change', loadTiles);
@@ -57,6 +58,7 @@ export default {
         STATE.layers.push(this);
 
         loadTiles();
+        STATE.scene.add(imageMesh);
     },
     update: function (STATE) {
         if (!needUpdate) return;
@@ -65,10 +67,7 @@ export default {
         if (!tiles) return;
         let loadingCount = 0;
         tiles.forEach(tile => {
-            if (!tilesInScene[tile.id] && tile.state === 'loaded') {
-                STATE.scene.add(tile.mesh);
-                tilesInScene[tile.id] = tile.mesh;
-            } else if (tile.state === 'loading') {
+            if (tile.state === 'loading') {
                 // when is loading ?
                 loadingCount++;
             } else if (!tile.state) {
@@ -77,16 +76,29 @@ export default {
             }
         });
 
-        needUpdate = loadingCount > 0;
-        if (!needUpdate) {
-            // remove
+        if (loadingCount < tiles.length * 0.2) {
+            tiles.forEach(tile => {
+                if (!tilesInScene[tile.id] && tile.state === 'loaded') {
+                    STATE.scene.add(tile.mesh);
+                    tilesInScene[tile.id] = tile.mesh;
+                }
+            });
+            // remove all unvisible tiles when 80% loaded
             Object.keys(tilesInScene).forEach(tileId => {
                 if (!tileGrid.isVisible(tileId)) {
                     STATE.scene.remove(tilesInScene[tileId]);
                     delete tilesInScene[tileId];
                 }
             });
-            console.log('complete');
+        }
+
+        needUpdate = loadingCount > 0;
+        if (!needUpdate) {
+            if (imageMesh.material.side == THREE.DoubleSide) {
+                imageMesh.material.side = THREE.BackSide;
+                imageMesh.material.needsUpdate = true;
+            }
+            console.log('complete', Object.keys(tilesInScene).length);
         }
     }
 };

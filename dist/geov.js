@@ -45169,6 +45169,7 @@ var MapControls = MapControls = function (object, domElement, options) {
     this.maxPitch = 80;
 
     var EPS = 0.000001;
+    var PITCHEPS = 0.0001;
 
     var _state = STATE.NONE,
         _dragPrev = new Vector2(),
@@ -45192,11 +45193,6 @@ var MapControls = MapControls = function (object, domElement, options) {
 
         if (type === 'end')
             changeEvent.type = null;
-    };
-
-    this.getVisibleExtent = function () {
-        var theta = Math.min(90 / (90 - this.pitch), 2);
-        return theta;
     };
 
     this.jumpTo = function (cameraOpts) {
@@ -45252,19 +45248,16 @@ var MapControls = MapControls = function (object, domElement, options) {
     };
 
     var getEyeVector = function (target) {
-        var zoomDistance = Math.pow(2, _this.zoom - 1) * _this.earthRadius / 100000;
+        var zoomDistance = Math.pow(1.9, _this.zoom - 1) * _this.earthRadius / 30000;
         var origin = new Vector3().setFromSpherical(target);
-        target.phi -= 0.00001;
+        target.phi -= EPS;
         var normal = new Vector3().setFromSpherical(target).sub(origin).normalize();
         normal.applyAxisAngle(origin.clone().normalize(), _this.bearing + PI);
-        if (_this.pitch > 0.1) {
-            var eye0 = origin.normalize().multiplyScalar(Math.tan((90 - _this.pitch) / 180 * PI));
-            return eye0.clone().add(normal).normalize().multiplyScalar(zoomDistance);
-        } else {
-            return origin.clone().normalize().multiplyScalar(zoomDistance);
-        }
+        if (_this.pitch < PITCHEPS)
+            _this.pitch = PITCHEPS;
+        var eye0 = origin.normalize().multiplyScalar(Math.tan((90 - _this.pitch) / 180 * PI));
+        return eye0.clone().add(normal).normalize().multiplyScalar(zoomDistance);
     };
-
     // listeners
 
     var mousedown = function (event) {
@@ -45328,7 +45321,8 @@ var MapControls = MapControls = function (object, domElement, options) {
         } else if (_state === STATE.PAN && !_this.noPan) {
 
             if (_this.zoom < _this.globeZoom) {
-                if ((Math.abs(_dragDelta.y) > 0.015 && Math.abs(_dragDelta.x) > 0.015) || Math.abs(_dragDelta.y) < 0.015) {
+                if ((Math.abs(_dragDelta.y) > 0.05 && Math.abs(_dragDelta.x) > 0.05) ||
+                    (Math.abs(_dragDelta.y) < Math.abs(_dragDelta.x))) {
                     if (_dragCurr.y < 0.5)
                         _this.bearingEnd = _this.bearing + (_dragDelta.x * _this.panSpeed * 24);
                     else
@@ -45338,7 +45332,8 @@ var MapControls = MapControls = function (object, domElement, options) {
                 _this.bearingEnd = 0;
             }
 
-            if ((Math.abs(_dragDelta.y) > 0.015 && Math.abs(_dragDelta.x) > 0.015) || Math.abs(_dragDelta.x) < 0.015)
+            if ((Math.abs(_dragDelta.y) > 0.05 && Math.abs(_dragDelta.x) > 0.05) ||
+                (Math.abs(_dragDelta.x) < Math.abs(_dragDelta.y)))
                 _this.pitchEnd = _Math.clamp(_this.pitch - (_dragDelta.y * _this.panSpeed * 320), 0, _this.maxPitch);
 
         }
@@ -45437,10 +45432,12 @@ var MapControls = MapControls = function (object, domElement, options) {
 
             _this.needsUpdate = true;
         } else {
-            _this.coordEnd.x = (_this.coordEnd.x + PI2) % PI2;
+            while (_this.coordEnd.x < 0) _this.coordEnd.x += PI2;
+            _this.coordEnd.x = _this.coordEnd.x % PI2;
             _this.coord.copy(_this.coordEnd);
             _this.zoom = _this.zoomEnd;
-            _this.bearing = _this.bearingEnd = (_this.bearingEnd + PI2) % PI2;
+            while (_this.bearingEnd < 0) _this.bearingEnd += PI2;
+            _this.bearing = _this.bearingEnd = _this.bearingEnd % PI2;
             _this.pitch = _this.pitchEnd;
         }
 
@@ -45456,12 +45453,10 @@ var MapControls = MapControls = function (object, domElement, options) {
         var eye = getEyeVector(target);
         _this.object.position.copy(targetPos.clone().add(eye));
 
-        if (_this.pitch > 0.1) {
-            var targetUp = targetPos.clone().normalize().multiplyScalar(eye.length() / Math.cos(_this.pitch / 180 * PI));
-            _this.object.up = targetUp.sub(eye).normalize();
-        } else {
-            _this.object.up = new Vector3(Math.cos(HALFPI + _this.bearing), Math.sin(HALFPI + _this.bearing), 0);
-        }
+        if (_this.pitch < PITCHEPS)
+            _this.pitch = PITCHEPS;
+        var targetUp = targetPos.clone().normalize().multiplyScalar(eye.length() / Math.cos(_this.pitch / 180 * PI));
+        _this.object.up = targetUp.sub(eye).normalize();
 
         _this.object.lookAt(targetPos);
 
@@ -45507,28 +45502,33 @@ var atomLayer = {
 
 var loader = new TextureLoader();
 var imageMesh = new Mesh();
-
 var cloudLayer = {
     addToGlobe: function addToGlobe(STATE) {
-        imageMesh.geometry = new SphereGeometry(STATE.radius * 1.032, 128, 128);
-        imageMesh.material = new MeshPhongMaterial({
-            side: DoubleSide,
-            transparent: true
-        });
-        imageMesh.rotation.y = 3;
-
         loader.load('textures/fair_clouds_4k.png', function (t) {
+            imageMesh.geometry = new SphereGeometry(STATE.radius * 1.032, 128, 128);
+            imageMesh.rotation.y = 3;
+            imageMesh.material = new MeshPhongMaterial({
+                transparent: true
+            });
             t.anisotropy = 16;
             t.wrapS = t.wrapT = RepeatWrapping;
             imageMesh.material.map = t;
-            STATE.scene.add(imageMesh);
+            imageMesh.material.needsUpdate = true;
         });
 
         STATE.layers.push(this);
     },
     update: function update(STATE) {
+        if (!imageMesh.geometry) return;
+
         imageMesh.material.opacity = (STATE.controls.zoom - 13) * 0.07;
-        if (imageMesh.material.opacity < 0.1) imageMesh.material.opacity = 0;
+        if (imageMesh.material.opacity < 0.1) {
+            STATE.scene.remove(imageMesh);
+            
+        } else {
+            STATE.scene.add(imageMesh);
+            
+        }
         imageMesh.rotation.y += 0.00001;
         imageMesh.rotation.x -= 0.00003;
     }
@@ -45763,14 +45763,15 @@ var lastVisibleExtent = void 0;
 var visibleTiles = void 0;
 var EPS = 0.001;
 
-// 墨卡托投影球面纬度 转换为 正常球面纬度
-// -atan(PI) < phi < atan(PI)
+// 正常球面纬度 转换为 墨卡托投影球面纬度
+// -PI/2 < phi < PI/2
 function webmercatorToGeoDegreePhi(phi) {
     if (phi < -MathUtils.MAXPHI) return -MathUtils.HALFPI + 0.00001;
     if (phi > MathUtils.MAXPHI) return MathUtils.HALFPI - 0.00001;
     return Math.tan(phi) / 2;
 }
 
+// 通过缓存获取切片或创建新切片
 function genTile(radius, zoom, size, col, row, width) {
     var tileId = zoom + '-' + col + '-' + row;
     var tile = tileCache.get(tileId);
@@ -45782,6 +45783,7 @@ function genTile(radius, zoom, size, col, row, width) {
     return tile;
 }
 
+// 通过层级、横向/纵向角度定位切片
 function getTile(radius, zoom, phi, theta) {
     while (theta < 0) {
         theta += MathUtils.PI2;
@@ -45799,6 +45801,7 @@ function getTile(radius, zoom, phi, theta) {
     return genTile(radius, zoom, size, col, row, width);
 }
 
+// 计算正确行列号
 function reviseRowAndCol(size, row, col) {
     var size2 = size * 2;
     var sizeh = Math.floor(size / 2);
@@ -45816,59 +45819,52 @@ function reviseRowAndCol(size, row, col) {
     return [row, col];
 }
 
-// 根据视线视角计算可视切片
-function getRoundTiles(tile, pitch, bearing) {
-    var offsetY = Math.abs(tile.row / tile.size - 0.5) * 10;
-    var pitchRatio = 270 / (270 - pitch);
-    // 靠近高纬度、倾斜角大的情况下，可视切片数量大
-    var roundSize = Math.floor((tile.zoom < 4 ? tile.zoom + 3 : 4 + offsetY) * pitchRatio);
-
-    var centerRow = Math.round(tile.row + Math.cos(bearing) * (pitchRatio - 1) * tile.zoom * tile.zoom * 0.05),
-        centerCol = Math.round(tile.col + Math.sin(bearing) * (pitchRatio - 1) * tile.zoom * tile.zoom * 0.05);
-    var tiles = [],
-        tileIds = [];
-    for (var dr = 0; dr < roundSize; dr++) {
-        for (var dc = 0; dc < roundSize; dc++) {
-            if (tiles.length > 100 * pitchRatio) break;
-            var row_col = reviseRowAndCol(tile.size, centerRow + dr, centerCol + dc);
-            var _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-            if (tileIds.indexOf(_id) < 0) {
-                var t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                tileIds.push(t.id);
-                tiles.push(t);
-            }
-
-            if (dc > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow + dr, centerCol - dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    var _t = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(_t.id);
-                    tiles.push(_t);
-                }
-            }
-            if (dr > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow - dr, centerCol + dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    var _t2 = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(_t2.id);
-                    tiles.push(_t2);
-                }
-            }
-            if (dc > 0 && dr > 0) {
-                row_col = reviseRowAndCol(tile.size, centerRow - dr, centerCol - dc);
-                _id = tile.zoom + '-' + row_col[1] + '-' + row_col[0];
-                if (tileIds.indexOf(_id) < 0) {
-                    var _t3 = genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
-                    tileIds.push(_t3.id);
-                    tiles.push(_t3);
-                }
-            }
+// 计算当前可见切片范围，结果为行列号数组
+function calcRange(centerTile, pitch, bearing) {
+    // 纬度偏移量 ( 0 ~ 1 )，越靠近高纬度，可视切片数量越大
+    var offsetY = Math.abs((centerTile.row + 0.5) / centerTile.size - 0.5) * 2;
+    // 显示级别权值 ( 0 | 1 )，级别靠近最大或最小时为1
+    var zoomRatio = centerTile.zoom < 4 || centerTile.zoom > 15 ? 1 : 0;
+    // 倾斜度 ( 0 ~ 1 )，倾斜度越大，可视切片数量越大
+    var pitchRatio = 160 / (160 - pitch) - 1;
+    // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
+    var bearingRatio = 0.5 + Math.cos(bearing) * (0.5 - (centerTile.row + 0.5) / centerTile.size);
+    // 可见行数
+    var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 3 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
+    // 可见列数
+    var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 3 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
+    // 中心行列号
+    var centerRow = centerTile.row;
+    var centerCol = centerTile.col;
+    var row_cols = [[centerRow, centerCol]];
+    var tileIds = [centerRow + '-' + centerCol];
+    var pushRowCol = function pushRowCol(row_col) {
+        if (tileIds.indexOf(row_col[0] + '-' + row_col[1]) < 0) {
+            tileIds.push(row_col[0] + '-' + row_col[1]);
+            row_cols.push(row_col);
+        }
+    };
+    for (var index = 1; index <= Math.max(rowCount, colCount); index++) {
+        for (var i = index; i > -1; i--) {
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, index), centerCol + Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, index), centerCol - Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, index), centerCol + Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, index), centerCol - Math.min(colCount, i)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, i), centerCol + Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow + Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol + Math.min(colCount, index)));
+            pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
         }
     }
-    console.log(tile.zoom, tile.row, tile.col, centerRow, centerCol, roundSize, tiles.length, pitchRatio);
-    return tiles;
+    console.log(rowCount, colCount, row_cols.length);
+    return row_cols;
+}
+
+// 根据可视范围获取切片
+function getRoundTiles(tile, row_cols) {
+    return row_cols.map(function (row_col) {
+        return genTile(tile.radius, tile.zoom, tile.size, row_col[1], row_col[0], tile.width);
+    });
 }
 
 var tileGrid = {
@@ -45885,7 +45881,7 @@ var tileGrid = {
             bearing: bearing
         };
 
-        visibleTiles = getRoundTiles(tile, pitch, bearing);
+        visibleTiles = getRoundTiles(tile, calcRange(tile, pitch, bearing));
         return visibleTiles;
     },
     isVisible: function isVisible(tileId) {
@@ -45900,6 +45896,8 @@ var tiles = void 0;
 var tilesInScene = {};
 var needUpdate = false;
 var inControl = false;
+
+var imageMesh$2 = void 0;
 
 function loadTiles(force) {
     if (!controls) return;
@@ -45933,27 +45931,20 @@ function loadTiles(force) {
 
 var tileLayer = {
     addToGlobe: function addToGlobe(STATE) {
-        var imageMesh = new Mesh(new SphereGeometry(STATE.radius * 0.95, 32, 32), new MeshBasicMaterial({
-            color: 0x444444
+        imageMesh$2 = new Mesh(new SphereGeometry(STATE.radius * 0.99, 32, 32), new MeshBasicMaterial({
+            color: 0x444444,
+            side: DoubleSide
         }));
-        STATE.scene.add(imageMesh);
 
-        var state = 'macro';
         controls = STATE.controls;
         controls.addEventListener('change', loadTiles);
         controls.addEventListener('end', function () {
-            if (controls.pitch > 30 && state === 'macro') {
-                imageMesh.geometry = new SphereGeometry(STATE.radius * 0.99, 64, 64);
-                state = 'micro';
-            } else if (controls.pitch <= 30 && state === 'micro') {
-                imageMesh.geometry = new SphereGeometry(STATE.radius * 0.95, 32, 32);
-                state = 'macro';
-            }
-            loadTiles(true);
+            return loadTiles(true);
         });
         STATE.layers.push(this);
 
         loadTiles();
+        STATE.scene.add(imageMesh$2);
     },
     update: function update(STATE) {
         if (!needUpdate) return;
@@ -45962,10 +45953,7 @@ var tileLayer = {
         if (!tiles) return;
         var loadingCount = 0;
         tiles.forEach(function (tile) {
-            if (!tilesInScene[tile.id] && tile.state === 'loaded') {
-                STATE.scene.add(tile.mesh);
-                tilesInScene[tile.id] = tile.mesh;
-            } else if (tile.state === 'loading') {
+            if (tile.state === 'loading') {
                 // when is loading ?
                 loadingCount++;
             } else if (!tile.state) {
@@ -45974,16 +45962,29 @@ var tileLayer = {
             }
         });
 
-        needUpdate = loadingCount > 0;
-        if (!needUpdate) {
-            // remove
+        if (loadingCount < tiles.length * 0.2) {
+            tiles.forEach(function (tile) {
+                if (!tilesInScene[tile.id] && tile.state === 'loaded') {
+                    STATE.scene.add(tile.mesh);
+                    tilesInScene[tile.id] = tile.mesh;
+                }
+            });
+            // remove all unvisible tiles when 80% loaded
             Object.keys(tilesInScene).forEach(function (tileId) {
                 if (!tileGrid.isVisible(tileId)) {
                     STATE.scene.remove(tilesInScene[tileId]);
                     delete tilesInScene[tileId];
                 }
             });
-            console.log('complete');
+        }
+
+        needUpdate = loadingCount > 0;
+        if (!needUpdate) {
+            if (imageMesh$2.material.side == DoubleSide) {
+                imageMesh$2.material.side = BackSide;
+                imageMesh$2.material.needsUpdate = true;
+            }
+            console.log('complete', Object.keys(tilesInScene).length);
         }
     }
 };
