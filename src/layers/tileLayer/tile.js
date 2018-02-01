@@ -4,6 +4,12 @@ import tileProvider from './tile-provider';
 
 const loader = new THREE.TextureLoader();
 
+// 正常球面纬度 转换为 墨卡托投影球面纬度
+// -PI/2 < phi < PI/2
+function geoToWebmercatorDegreePhi(phi) {
+    return Math.atan(2 * phi);
+}
+
 class Tile {
     constructor(radius, zoom, size, col, row, width) {
         this.id = zoom + '-' + col + '-' + row;
@@ -29,17 +35,34 @@ class Tile {
             this.request.timeout = 5000; // time in milliseconds
         }
 
-        var _this = this;
+        const _this = this;
         this.state = 'loading';
         this.request.open('GET', this.url, true);
         this.request.responseType = 'blob';
         this.request.onload = function () {
-            var blob = this.response;
-            var img = document.createElement('img');
+            const blob = this.response;
+            const img = document.createElement('img');
             img.onload = function (e) {
                 window.URL.revokeObjectURL(img.src); // 清除释放
 
-                _this.geometry = new THREE.SphereBufferGeometry(_this.radius, 16, 16, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                _this.heightSegments = Math.max(12 - _this.zoom, 5);
+                _this.widthSegments = _this.zoom < 5 ? 12 : 3;
+                _this.geometry = new THREE.SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                _this.geometry.removeAttribute('uv');
+
+                const _mphiStart = geoToWebmercatorDegreePhi(_this.phiStart - MathUtils.HALFPI);
+                const _mphiEnd = geoToWebmercatorDegreePhi(_this.phiStart + _this.height - MathUtils.HALFPI);
+                const quad_uvs = [];
+                for (let heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
+                    const _phi = _this.phiStart + ((1 - heightIndex / _this.heightSegments) * _this.height);
+                    const _mphi = geoToWebmercatorDegreePhi(_phi - MathUtils.HALFPI);
+                    const _y = (_mphi - _mphiStart) / (_mphiEnd - _mphiStart);
+                    for (let widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
+                        quad_uvs.push(widthIndex / _this.widthSegments);
+                        quad_uvs.push(_y);
+                    }
+                }
+                _this.geometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(quad_uvs), 2));
                 _this.texture = new THREE.Texture();
                 _this.texture.image = img;
                 _this.texture.format = THREE.RGBFormat;
@@ -47,7 +70,7 @@ class Tile {
 
                 _this.material = new THREE.MeshLambertMaterial({
                     map: _this.texture,
-                    side: THREE.DoubleSide
+                    side: THREE.FrontSide
                 });
                 _this.mesh = new THREE.Mesh(
                     _this.geometry,
