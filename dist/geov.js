@@ -45168,8 +45168,8 @@ var MapControls = MapControls = function (object, domElement, options) {
     this.globeZoom = 10;
     this.maxPitch = 80;
 
-    var EPS = 0.000001;
-    var PITCHEPS = 0.0001;
+    var EPS = 0.00001;
+    var PITCHEPS = 0.000001;
 
     var _state = STATE.NONE,
         _dragPrev = new Vector2(),
@@ -45581,13 +45581,14 @@ var TILE_CACHE = {};
 // 切片访问队列，记录切片访问次序
 var TILEID_QUEUE = [];
 // 最大可维护切片数量
-var MAX_TILE_SIZE = 1000;
+var MAX_TILE_SIZE = 900;
 
 // 更新最近访问列表顺序
 function moveToEnd(tileId) {
-    var index = TILEID_QUEUE.find(function (ele) {
+    var index = TILEID_QUEUE.findIndex(function (ele) {
         return ele === tileId;
     });
+    if (index < 0) return;
     TILEID_QUEUE = TILEID_QUEUE.concat(TILEID_QUEUE.splice(index, 1));
 }
 
@@ -45613,6 +45614,10 @@ var tileCache = {
     },
     add: function add(tile) {
         addToQueue(tile.id);
+        TILE_CACHE[tile.id] = tile;
+    },
+    save: function save(tile) {
+        // 持久化存储
         TILE_CACHE[tile.id] = tile;
     },
     size: function size() {
@@ -45665,6 +45670,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+function geoToWebmercatorDegreePhi(phi) {
+    return Math.atan(2 * phi);
+}
+
 var Tile = function () {
     function Tile(radius, zoom, size, col, row, width) {
         _classCallCheck(this, Tile);
@@ -45704,7 +45713,24 @@ var Tile = function () {
                 img.onload = function (e) {
                     window.URL.revokeObjectURL(img.src); // 清除释放
 
-                    _this.geometry = new SphereBufferGeometry(_this.radius, 16, 16, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                    _this.heightSegments = Math.max(12 - _this.zoom, 5);
+                    _this.widthSegments = _this.zoom < 5 ? 12 : 3;
+                    _this.geometry = new SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                    _this.geometry.removeAttribute('uv');
+
+                    var _mphiStart = geoToWebmercatorDegreePhi(_this.phiStart - MathUtils.HALFPI);
+                    var _mphiEnd = geoToWebmercatorDegreePhi(_this.phiStart + _this.height - MathUtils.HALFPI);
+                    var quad_uvs = [];
+                    for (var heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
+                        var _phi = _this.phiStart + (1 - heightIndex / _this.heightSegments) * _this.height;
+                        var _mphi = geoToWebmercatorDegreePhi(_phi - MathUtils.HALFPI);
+                        var _y = (_mphi - _mphiStart) / (_mphiEnd - _mphiStart);
+                        for (var widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
+                            quad_uvs.push(widthIndex / _this.widthSegments);
+                            quad_uvs.push(_y);
+                        }
+                    }
+                    _this.geometry.addAttribute('uv', new BufferAttribute(new Float32Array(quad_uvs), 2));
                     _this.texture = new Texture();
                     _this.texture.image = img;
                     _this.texture.format = RGBFormat;
@@ -45712,7 +45738,7 @@ var Tile = function () {
 
                     _this.material = new MeshLambertMaterial({
                         map: _this.texture,
-                        side: DoubleSide
+                        side: FrontSide
                     });
                     _this.mesh = new Mesh(_this.geometry, _this.material);
                     _this.mesh.tileId = _this.id;
@@ -45763,8 +45789,8 @@ var lastVisibleExtent = void 0;
 var visibleTiles = void 0;
 var EPS = 0.001;
 
-// 正常球面纬度 转换为 墨卡托投影球面纬度
-// -PI/2 < phi < PI/2
+// 墨卡托投影球面纬度 转换为 正常球面纬度
+// -atan(PI) < phi < atan(PI)
 function webmercatorToGeoDegreePhi(phi) {
     if (phi < -MathUtils.MAXPHI) return -MathUtils.HALFPI + 0.00001;
     if (phi > MathUtils.MAXPHI) return MathUtils.HALFPI - 0.00001;
@@ -45777,7 +45803,7 @@ function genTile(radius, zoom, size, col, row, width) {
     var tile = tileCache.get(tileId);
     if (!tile) {
         tile = new Tile(radius, zoom, size, col, row, width);
-        tileCache.add(tile);
+        if (tile.zoom < 4) tileCache.save(tile);else tileCache.add(tile);
     }
 
     return tile;
@@ -45826,13 +45852,13 @@ function calcRange(centerTile, pitch, bearing) {
     // 显示级别权值 ( 0 | 1 )，级别靠近最大或最小时为1
     var zoomRatio = centerTile.zoom < 4 || centerTile.zoom > 15 ? 1 : 0;
     // 倾斜度 ( 0 ~ 1 )，倾斜度越大，可视切片数量越大
-    var pitchRatio = 160 / (160 - pitch) - 1;
+    var pitchRatio = Math.min(90 / (90 - pitch), 2) - 1;
     // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
     var bearingRatio = 0.5 + Math.cos(bearing) * (0.5 - (centerTile.row + 0.5) / centerTile.size);
     // 可见行数
-    var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 3 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
+    var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 5 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
     // 可见列数
-    var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 3 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
+    var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 4 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
     // 中心行列号
     var centerRow = centerTile.row;
     var centerCol = centerTile.col;
@@ -45856,7 +45882,7 @@ function calcRange(centerTile, pitch, bearing) {
             pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
         }
     }
-    console.log(rowCount, colCount, row_cols.length);
+    // console.log(rowCount, colCount, row_cols.length);
     return row_cols;
 }
 
@@ -45937,14 +45963,16 @@ var tileLayer = {
         }));
 
         controls = STATE.controls;
-        controls.addEventListener('change', loadTiles);
+        controls.addEventListener('change', function () {
+            return loadTiles();
+        });
         controls.addEventListener('end', function () {
             return loadTiles(true);
         });
         STATE.layers.push(this);
+        STATE.scene.add(imageMesh$2);
 
         loadTiles();
-        STATE.scene.add(imageMesh$2);
     },
     update: function update(STATE) {
         if (!needUpdate) return;
@@ -45984,7 +46012,12 @@ var tileLayer = {
                 imageMesh$2.material.side = BackSide;
                 imageMesh$2.material.needsUpdate = true;
             }
-            console.log('complete', Object.keys(tilesInScene).length);
+            // console.log('complete', Object.keys(tilesInScene).length);
+        } else {
+            if (imageMesh$2.material.side == BackSide) {
+                imageMesh$2.material.side = DoubleSide;
+                imageMesh$2.material.needsUpdate = true;
+            }
         }
     }
 };

@@ -5,12 +5,6 @@ import Tile from './tile';
 let lastVisibleExtent, visibleTiles;
 const EPS = 0.001;
 
-// 正常球面纬度 转换为 墨卡托投影球面纬度
-// -PI/2 < phi < PI/2
-function geoToWebmercatorDegreePhi(phi) {
-    return Math.atan(2 * phi);
-}
-
 // 墨卡托投影球面纬度 转换为 正常球面纬度
 // -atan(PI) < phi < atan(PI)
 function webmercatorToGeoDegreePhi(phi) {
@@ -25,7 +19,10 @@ function genTile(radius, zoom, size, col, row, width) {
     var tile = tileCache.get(tileId);
     if (!tile) {
         tile = new Tile(radius, zoom, size, col, row, width);
-        tileCache.add(tile);
+        if (tile.zoom < 4)
+            tileCache.save(tile);
+        else
+            tileCache.add(tile);
     }
 
     return tile;
@@ -74,13 +71,13 @@ function calcRange(centerTile, pitch, bearing) {
     // 显示级别权值 ( 0 | 1 )，级别靠近最大或最小时为1
     const zoomRatio = centerTile.zoom < 4 || centerTile.zoom > 15 ? 1 : 0;
     // 倾斜度 ( 0 ~ 1 )，倾斜度越大，可视切片数量越大
-    const pitchRatio = 160 / (160 - pitch) - 1;
+    const pitchRatio = Math.min(90 / (90 - pitch), 2) - 1;
     // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
     const bearingRatio = 0.5 + (Math.cos(bearing) * (0.5 - ((centerTile.row + 0.5) / centerTile.size)));
     // 可见行数
-    const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 3) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
+    const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 5) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
     // 可见列数
-    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 3) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
+    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 4) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
     // 中心行列号
     const centerRow = centerTile.row;
     const centerCol = centerTile.col;
@@ -104,7 +101,7 @@ function calcRange(centerTile, pitch, bearing) {
             pushRowCol(reviseRowAndCol(centerTile.size, centerRow - Math.min(rowCount, i), centerCol - Math.min(colCount, index)));
         }
     }
-    console.log(rowCount, colCount, row_cols.length);
+    // console.log(rowCount, colCount, row_cols.length);
     return row_cols;
 }
 

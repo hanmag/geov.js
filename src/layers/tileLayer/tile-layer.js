@@ -53,12 +53,12 @@ export default {
         );
 
         controls = STATE.controls;
-        controls.addEventListener('change', loadTiles);
+        controls.addEventListener('change', () => loadTiles());
         controls.addEventListener('end', () => loadTiles(true));
         STATE.layers.push(this);
+        STATE.scene.add(imageMesh);
 
         loadTiles();
-        STATE.scene.add(imageMesh);
     },
     update: function (STATE) {
         if (!needUpdate) return;
@@ -98,7 +98,12 @@ export default {
                 imageMesh.material.side = THREE.BackSide;
                 imageMesh.material.needsUpdate = true;
             }
-            console.log('complete', Object.keys(tilesInScene).length);
+            // console.log('complete', Object.keys(tilesInScene).length);
+        } else {
+            if (imageMesh.material.side == THREE.BackSide) {
+                imageMesh.material.side = THREE.DoubleSide;
+                imageMesh.material.needsUpdate = true;
+            }
         }
     }
 };
