@@ -45670,10 +45670,6 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function geoToWebmercatorDegreePhi(phi) {
-    return Math.atan(2 * phi);
-}
-
 var Tile = function () {
     function Tile(radius, zoom, size, col, row, width) {
         _classCallCheck(this, Tile);
@@ -45716,21 +45712,23 @@ var Tile = function () {
                     _this.heightSegments = Math.max(12 - _this.zoom, 5);
                     _this.widthSegments = _this.zoom < 5 ? 12 : 3;
                     _this.geometry = new SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
-                    _this.geometry.removeAttribute('uv');
 
-                    var _mphiStart = geoToWebmercatorDegreePhi(_this.phiStart - MathUtils.HALFPI);
-                    var _mphiEnd = geoToWebmercatorDegreePhi(_this.phiStart + _this.height - MathUtils.HALFPI);
-                    var quad_uvs = [];
-                    for (var heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
-                        var _phi = _this.phiStart + (1 - heightIndex / _this.heightSegments) * _this.height;
-                        var _mphi = geoToWebmercatorDegreePhi(_phi - MathUtils.HALFPI);
-                        var _y = (_mphi - _mphiStart) / (_mphiEnd - _mphiStart);
-                        for (var widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
-                            quad_uvs.push(widthIndex / _this.widthSegments);
-                            quad_uvs.push(_y);
+                    if (_this.zoom < 12 && _this.row > 0 && _this.row < _this.size - 1) {
+                        _this.geometry.removeAttribute('uv');
+                        var _mphiStart = Math.tan(_this.phiStart - MathUtils.HALFPI) / 2;
+                        var _mphiEnd = Math.tan(_this.phiStart + _this.height - MathUtils.HALFPI) / 2;
+                        var quad_uvs = [];
+                        for (var heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
+                            var _phi = _this.phiStart + heightIndex / _this.heightSegments * _this.height;
+                            var _mphi = Math.tan(_phi - MathUtils.HALFPI) / 2;
+                            var _y = (_mphiEnd - _mphi) / (_mphiEnd - _mphiStart);
+                            for (var widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
+                                quad_uvs.push(widthIndex / _this.widthSegments);
+                                quad_uvs.push(_y);
+                            }
                         }
+                        _this.geometry.addAttribute('uv', new BufferAttribute(new Float32Array(quad_uvs), 2));
                     }
-                    _this.geometry.addAttribute('uv', new BufferAttribute(new Float32Array(quad_uvs), 2));
                     _this.texture = new Texture();
                     _this.texture.image = img;
                     _this.texture.format = RGBFormat;
@@ -45789,8 +45787,8 @@ var lastVisibleExtent = void 0;
 var visibleTiles = void 0;
 var EPS = 0.001;
 
-// 墨卡托投影球面纬度 转换为 正常球面纬度
-// -atan(PI) < phi < atan(PI)
+// 正常球面纬度 转换为 墨卡托投影球面纬度
+// -PI/2 < phi < PI/2
 function webmercatorToGeoDegreePhi(phi) {
     if (phi < -MathUtils.MAXPHI) return -MathUtils.HALFPI + 0.00001;
     if (phi > MathUtils.MAXPHI) return MathUtils.HALFPI - 0.00001;
@@ -45856,7 +45854,7 @@ function calcRange(centerTile, pitch, bearing) {
     // 转向角权值 ( 0 ~ 1 )，视线指向赤道时转向角权值小，视线指向两极时转向角权值大
     var bearingRatio = 0.5 + Math.cos(bearing) * (0.5 - (centerTile.row + 0.5) / centerTile.size);
     // 可见行数
-    var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 5 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
+    var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 5 + pitchRatio * 4 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
     // 可见列数
     var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 4 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
     // 中心行列号
@@ -45923,8 +45921,6 @@ var tilesInScene = {};
 var needUpdate = false;
 var inControl = false;
 
-var imageMesh$2 = void 0;
-
 function loadTiles(force) {
     if (!controls) return;
 
@@ -45957,11 +45953,6 @@ function loadTiles(force) {
 
 var tileLayer = {
     addToGlobe: function addToGlobe(STATE) {
-        imageMesh$2 = new Mesh(new SphereGeometry(STATE.radius * 0.99, 32, 32), new MeshBasicMaterial({
-            color: 0x444444,
-            side: DoubleSide
-        }));
-
         controls = STATE.controls;
         controls.addEventListener('change', function () {
             return loadTiles();
@@ -45970,7 +45961,14 @@ var tileLayer = {
             return loadTiles(true);
         });
         STATE.layers.push(this);
-        STATE.scene.add(imageMesh$2);
+        STATE.scene.add(new Mesh(new SphereGeometry(STATE.radius * 0.9, 32, 32), new MeshBasicMaterial({
+            color: 0x444444,
+            side: DoubleSide
+        })));
+        STATE.scene.add(new Mesh(new SphereGeometry(STATE.radius * 0.99, 32, 32), new MeshBasicMaterial({
+            color: 0x444444,
+            side: BackSide
+        })));
 
         loadTiles();
     },
@@ -46007,18 +46005,6 @@ var tileLayer = {
         }
 
         needUpdate = loadingCount > 0;
-        if (!needUpdate) {
-            if (imageMesh$2.material.side == DoubleSide) {
-                imageMesh$2.material.side = BackSide;
-                imageMesh$2.material.needsUpdate = true;
-            }
-            // console.log('complete', Object.keys(tilesInScene).length);
-        } else {
-            if (imageMesh$2.material.side == BackSide) {
-                imageMesh$2.material.side = DoubleSide;
-                imageMesh$2.material.needsUpdate = true;
-            }
-        }
     }
 };
 

@@ -4,12 +4,6 @@ import tileProvider from './tile-provider';
 
 const loader = new THREE.TextureLoader();
 
-// 正常球面纬度 转换为 墨卡托投影球面纬度
-// -PI/2 < phi < PI/2
-function geoToWebmercatorDegreePhi(phi) {
-    return Math.atan(2 * phi);
-}
-
 class Tile {
     constructor(radius, zoom, size, col, row, width) {
         this.id = zoom + '-' + col + '-' + row;
@@ -48,21 +42,23 @@ class Tile {
                 _this.heightSegments = Math.max(12 - _this.zoom, 5);
                 _this.widthSegments = _this.zoom < 5 ? 12 : 3;
                 _this.geometry = new THREE.SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
-                _this.geometry.removeAttribute('uv');
 
-                const _mphiStart = geoToWebmercatorDegreePhi(_this.phiStart - MathUtils.HALFPI);
-                const _mphiEnd = geoToWebmercatorDegreePhi(_this.phiStart + _this.height - MathUtils.HALFPI);
-                const quad_uvs = [];
-                for (let heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
-                    const _phi = _this.phiStart + ((1 - heightIndex / _this.heightSegments) * _this.height);
-                    const _mphi = geoToWebmercatorDegreePhi(_phi - MathUtils.HALFPI);
-                    const _y = (_mphi - _mphiStart) / (_mphiEnd - _mphiStart);
-                    for (let widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
-                        quad_uvs.push(widthIndex / _this.widthSegments);
-                        quad_uvs.push(_y);
+                if (_this.zoom < 12 && _this.row > 0 && _this.row < _this.size - 1) {
+                    _this.geometry.removeAttribute('uv');
+                    const _mphiStart = Math.tan(_this.phiStart - MathUtils.HALFPI) / 2;
+                    const _mphiEnd = Math.tan(_this.phiStart + _this.height - MathUtils.HALFPI) / 2;
+                    const quad_uvs = [];
+                    for (let heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
+                        const _phi = _this.phiStart + (heightIndex / _this.heightSegments * _this.height);
+                        const _mphi = Math.tan(_phi - MathUtils.HALFPI) / 2;
+                        const _y = (_mphiEnd - _mphi) / (_mphiEnd - _mphiStart);
+                        for (let widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
+                            quad_uvs.push(widthIndex / _this.widthSegments);
+                            quad_uvs.push(_y);
+                        }
                     }
+                    _this.geometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(quad_uvs), 2));
                 }
-                _this.geometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(quad_uvs), 2));
                 _this.texture = new THREE.Texture();
                 _this.texture.image = img;
                 _this.texture.format = THREE.RGBFormat;

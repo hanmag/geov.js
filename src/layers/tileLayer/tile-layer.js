@@ -44,19 +44,24 @@ function loadTiles(force) {
 
 export default {
     addToGlobe: function (STATE) {
-        imageMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(STATE.radius * 0.99, 32, 32),
-            new THREE.MeshBasicMaterial({
-                color: 0x444444,
-                side: THREE.DoubleSide
-            })
-        );
-
         controls = STATE.controls;
         controls.addEventListener('change', () => loadTiles());
         controls.addEventListener('end', () => loadTiles(true));
         STATE.layers.push(this);
-        STATE.scene.add(imageMesh);
+        STATE.scene.add(new THREE.Mesh(
+            new THREE.SphereGeometry(STATE.radius * 0.9, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0x444444,
+                side: THREE.DoubleSide
+            })
+        ));
+        STATE.scene.add(new THREE.Mesh(
+            new THREE.SphereGeometry(STATE.radius * 0.99, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0x444444,
+                side: THREE.BackSide
+            })
+        ));
 
         loadTiles();
     },
@@ -93,17 +98,5 @@ export default {
         }
 
         needUpdate = loadingCount > 0;
-        if (!needUpdate) {
-            if (imageMesh.material.side == THREE.DoubleSide) {
-                imageMesh.material.side = THREE.BackSide;
-                imageMesh.material.needsUpdate = true;
-            }
-            // console.log('complete', Object.keys(tilesInScene).length);
-        } else {
-            if (imageMesh.material.side == THREE.BackSide) {
-                imageMesh.material.side = THREE.DoubleSide;
-                imageMesh.material.needsUpdate = true;
-            }
-        }
     }
 };
