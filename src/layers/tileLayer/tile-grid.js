@@ -83,7 +83,7 @@ function calcRange(centerTile, pitch, bearing) {
     // 可见行数
     const rowCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 5) + (pitchRatio * 4) + (bearingRatio * 1.2) + (Math.abs(Math.sin(bearing)) * 1.2));
     // 可见列数
-    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 4) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
+    const colCount = Math.round(0.5 + (zoomRatio * 2) + (offsetY * 5) + (pitchRatio * 3) + (bearingRatio * 1.2) + (Math.abs(Math.cos(bearing)) * 1.2));
     // 中心行列号
     const centerRow = centerTile.row;
     const centerCol = centerTile.col;

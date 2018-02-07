@@ -38,5 +38,10 @@ export default {
         //var styles = ['a','r','h']
         url = `//ecn.t${serverIdx}.tiles.virtualearth.net/tiles/a${strMerge4}.jpeg?g=1239&mkt=en-us`;
         return url;
+    },
+    getMapzenTileUrl: function (level, row, column) {
+        return 'https://tile.mapzen.com/mapzen/vector/v1/all/' +
+            level + '/' + column + '/' + row +
+            '.json?api_key=' + 'mapzen-4SSs12o';
     }
 }

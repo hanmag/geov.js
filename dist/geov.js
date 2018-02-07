@@ -45168,7 +45168,7 @@ var MapControls = MapControls = function (object, domElement, options) {
     this.globeZoom = 10;
     this.maxPitch = 80;
 
-    var EPS = 0.00001;
+    var EPS = 0.000001;
     var PITCHEPS = 0.000001;
 
     var _state = STATE.NONE,
@@ -45302,9 +45302,9 @@ var MapControls = MapControls = function (object, domElement, options) {
 
         if (_state === STATE.ROTATE && !_this.noRotate) {
 
-            if (Math.abs(_dragDelta.y) < 0.01 && Math.abs(_dragDelta.x) > 0.01)
+            if (Math.abs(_dragDelta.y) < 0.01 && Math.abs(_dragDelta.x) > 0.02)
                 _dragDelta.y = 0;
-            if (Math.abs(_dragDelta.x) < 0.01 && Math.abs(_dragDelta.y) > 0.01)
+            if (Math.abs(_dragDelta.x) < 0.01 && Math.abs(_dragDelta.y) > 0.02)
                 _dragDelta.x = 0;
             var offset = getRotateOffset(_dragDelta);
             _this.coordEnd.x = _this.coord.x - offset.x;
@@ -45663,12 +45663,20 @@ var tileProvider = {
         //var styles = ['a','r','h']
         url = '//ecn.t' + serverIdx + '.tiles.virtualearth.net/tiles/a' + strMerge4 + '.jpeg?g=1239&mkt=en-us';
         return url;
+    },
+    getMapzenTileUrl: function getMapzenTileUrl(level, row, column) {
+        return 'https://tile.mapzen.com/mapzen/vector/v1/all/' + level + '/' + column + '/' + row + '.json?api_key=' + 'mapzen-4SSs12o';
     }
 };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var pointMaterial = new MeshBasicMaterial({
+    color: 0xff0000,
+    side: FrontSide
+});
 
 var Tile = function () {
     function Tile(radius, zoom, size, col, row, width) {
@@ -45686,6 +45694,9 @@ var Tile = function () {
         this.height = row === size - 1 ? MathUtils.PI - this.phiStart : MathUtils.HALFPI + Math.atan((2 * (row + 1) / size - 1) * MathUtils.PI) - this.phiStart;
 
         this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
+        this.type = 'raster-tile';
+        // this.url = tileProvider.getMapzenTileUrl(this.zoom, this.row, this.col);
+        // this.type = 'vector-tile';
         // this.load();
     }
 
@@ -45702,48 +45713,81 @@ var Tile = function () {
             var _this = this;
             this.state = 'loading';
             this.request.open('GET', this.url, true);
-            this.request.responseType = 'blob';
+            this.request.responseType = this.type == 'raster-tile' ? 'blob' : 'application/json';
             this.request.onload = function () {
-                var blob = this.response;
-                var img = document.createElement('img');
-                img.onload = function (e) {
-                    window.URL.revokeObjectURL(img.src); // 清除释放
+                var _this2 = this;
 
-                    _this.heightSegments = Math.max(12 - _this.zoom, 5);
-                    _this.widthSegments = _this.zoom < 5 ? 12 : 3;
-                    _this.geometry = new SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+                if (_this.type == 'raster-tile') {
+                    var blob = this.response;
+                    var img = document.createElement('img');
+                    img.onload = function (e) {
+                        window.URL.revokeObjectURL(img.src); // 清除释放
 
-                    if (_this.zoom < 12 && _this.row > 0 && _this.row < _this.size - 1) {
-                        _this.geometry.removeAttribute('uv');
-                        var _mphiStart = Math.tan(_this.phiStart - MathUtils.HALFPI) / 2;
-                        var _mphiEnd = Math.tan(_this.phiStart + _this.height - MathUtils.HALFPI) / 2;
-                        var quad_uvs = [];
-                        for (var heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
-                            var _phi = _this.phiStart + heightIndex / _this.heightSegments * _this.height;
-                            var _mphi = Math.tan(_phi - MathUtils.HALFPI) / 2;
-                            var _y = (_mphiEnd - _mphi) / (_mphiEnd - _mphiStart);
-                            for (var widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
-                                quad_uvs.push(widthIndex / _this.widthSegments);
-                                quad_uvs.push(_y);
+                        _this.heightSegments = Math.max(12 - _this.zoom, 5);
+                        _this.widthSegments = _this.zoom < 5 ? 12 : 3;
+                        _this.geometry = new SphereBufferGeometry(_this.radius, _this.widthSegments, _this.heightSegments, _this.col * _this.width, _this.width, _this.phiStart, _this.height);
+
+                        if (_this.zoom < 12 && _this.row > 0 && _this.row < _this.size - 1) {
+                            _this.geometry.removeAttribute('uv');
+                            var _mphiStart = Math.tan(_this.phiStart - MathUtils.HALFPI) / 2;
+                            var _mphiEnd = Math.tan(_this.phiStart + _this.height - MathUtils.HALFPI) / 2;
+                            var quad_uvs = [];
+                            for (var heightIndex = 0; heightIndex <= _this.heightSegments; heightIndex++) {
+                                var _phi = _this.phiStart + heightIndex / _this.heightSegments * _this.height;
+                                var _mphi = Math.tan(_phi - MathUtils.HALFPI) / 2;
+                                var _y = (_mphiEnd - _mphi) / (_mphiEnd - _mphiStart);
+                                for (var widthIndex = 0; widthIndex <= _this.widthSegments; widthIndex++) {
+                                    quad_uvs.push(widthIndex / _this.widthSegments);
+                                    quad_uvs.push(_y);
+                                }
+                            }
+                            _this.geometry.addAttribute('uv', new BufferAttribute(new Float32Array(quad_uvs), 2));
+                        }
+                        _this.texture = new Texture();
+                        _this.texture.image = img;
+                        _this.texture.format = RGBFormat;
+                        _this.texture.needsUpdate = true;
+
+                        _this.material = new MeshLambertMaterial({
+                            map: _this.texture,
+                            side: FrontSide
+                        });
+                        _this.mesh = new Mesh(_this.geometry, _this.material);
+                        _this.mesh.tileId = _this.id;
+                        _this.state = 'loaded';
+                    };
+
+                    img.src = window.URL.createObjectURL(blob);
+                } else if (_this.type == 'vector-tile') {
+                    (function () {
+                        var group = new Group();
+                        var layers = JSON.parse(_this2.response);
+                        for (var layerName in layers) {
+                            if (layers.hasOwnProperty(layerName)) {
+                                var layer = layers[layerName];
+                                if (layer.type != 'FeatureCollection') {
+                                    console.warn('layer.type', layer.type);
+                                    continue;
+                                }
+
+                                if (layer.features.length == 0) continue;
+
+                                layer.features.forEach(function (feature) {
+                                    if (feature.geometry.type == 'Point') {
+                                        var geometry = new CircleBufferGeometry(5, 32);
+                                        // todo cord
+                                        var mesh = new Mesh(geometry, pointMaterial);
+                                        group.add(mesh);
+                                    }
+                                });
                             }
                         }
-                        _this.geometry.addAttribute('uv', new BufferAttribute(new Float32Array(quad_uvs), 2));
-                    }
-                    _this.texture = new Texture();
-                    _this.texture.image = img;
-                    _this.texture.format = RGBFormat;
-                    _this.texture.needsUpdate = true;
 
-                    _this.material = new MeshLambertMaterial({
-                        map: _this.texture,
-                        side: FrontSide
-                    });
-                    _this.mesh = new Mesh(_this.geometry, _this.material);
-                    _this.mesh.tileId = _this.id;
-                    _this.state = 'loaded';
-                };
-
-                img.src = window.URL.createObjectURL(blob);
+                        _this.mesh = group;
+                        _this.mesh.tileId = _this.id;
+                        _this.state = 'loaded';
+                    })();
+                }
             };
             this.request.ontimeout = function () {
                 _this.state = null;
@@ -45856,7 +45900,7 @@ function calcRange(centerTile, pitch, bearing) {
     // 可见行数
     var rowCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 5 + pitchRatio * 4 + bearingRatio * 1.2 + Math.abs(Math.sin(bearing)) * 1.2);
     // 可见列数
-    var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 4 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
+    var colCount = Math.round(0.5 + zoomRatio * 2 + offsetY * 5 + pitchRatio * 3 + bearingRatio * 1.2 + Math.abs(Math.cos(bearing)) * 1.2);
     // 中心行列号
     var centerRow = centerTile.row;
     var centerCol = centerTile.col;
