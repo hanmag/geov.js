@@ -45625,6 +45625,18 @@ var tileCache = {
     }
 };
 
+var GeoUtils = {
+    // 经纬度坐标 转成 球面坐标
+    geoToSphere: function geoToSphere(earthRadius, coordinates) {
+        var x = coordinates[0] / 180 * MathUtils.PI + MathUtils.HALFPI;
+        if (x > MathUtils.PI) x = -MathUtils.PI2 + x;
+        var y = (90 - coordinates[1]) / 180 * MathUtils.PI;
+        var spherical = new Spherical(earthRadius, y, x);
+        spherical.makeSafe();
+        return new Vector3().setFromSpherical(spherical);
+    }
+};
+
 var tileProvider = {
     // Bing Map
     getBingTileUrl: function getBingTileUrl(level, row, column) {
@@ -45665,7 +45677,7 @@ var tileProvider = {
         return url;
     },
     getMapzenTileUrl: function getMapzenTileUrl(level, row, column) {
-        return 'https://tile.mapzen.com/mapzen/vector/v1/all/' + level + '/' + column + '/' + row + '.json?api_key=' + 'mapzen-4SSs12o';
+        return 'https://tile.mapzen.com/mapzen/vector/v1/512/all/' + level + '/' + column + '/' + row + '.json?api_key=' + 'mapzen-4SSs12o';
     }
 };
 
@@ -45673,9 +45685,18 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+var origin = new Vector3(0, 0, 0);
 var pointMaterial = new MeshBasicMaterial({
-    color: 0xff0000,
+    color: 0xdd5555,
+    side: BackSide
+});
+var lineMaterial = new LineBasicMaterial({
+    color: 0xaaaaaa,
     side: FrontSide
+});
+var shapeMaterial = new MeshBasicMaterial({
+    color: 0xff0000,
+    side: DoubleSide
 });
 
 var Tile = function () {
@@ -45693,10 +45714,10 @@ var Tile = function () {
         this.phiStart = row === 0 ? 0 : MathUtils.HALFPI + Math.atan((2 * row / size - 1) * MathUtils.PI);
         this.height = row === size - 1 ? MathUtils.PI - this.phiStart : MathUtils.HALFPI + Math.atan((2 * (row + 1) / size - 1) * MathUtils.PI) - this.phiStart;
 
-        this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
-        this.type = 'raster-tile';
-        // this.url = tileProvider.getMapzenTileUrl(this.zoom, this.row, this.col);
-        // this.type = 'vector-tile';
+        // this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
+        // this.type = 'raster-tile';
+        this.url = tileProvider.getMapzenTileUrl(this.zoom, this.row, this.col);
+        this.type = 'vector-tile';
         // this.load();
     }
 
@@ -45707,13 +45728,13 @@ var Tile = function () {
 
             if (!this.request) {
                 this.request = new XMLHttpRequest();
-                this.request.timeout = 5000; // time in milliseconds
+                this.request.timeout = 10000; // time in milliseconds
             }
 
             var _this = this;
             this.state = 'loading';
             this.request.open('GET', this.url, true);
-            this.request.responseType = this.type == 'raster-tile' ? 'blob' : 'application/json';
+            this.request.responseType = this.type == 'raster-tile' ? 'blob' : 'json';
             this.request.onload = function () {
                 var _this2 = this;
 
@@ -45761,7 +45782,7 @@ var Tile = function () {
                 } else if (_this.type == 'vector-tile') {
                     (function () {
                         var group = new Group();
-                        var layers = JSON.parse(_this2.response);
+                        var layers = _this2.response;
                         for (var layerName in layers) {
                             if (layers.hasOwnProperty(layerName)) {
                                 var layer = layers[layerName];
@@ -45774,10 +45795,39 @@ var Tile = function () {
 
                                 layer.features.forEach(function (feature) {
                                     if (feature.geometry.type == 'Point') {
-                                        var geometry = new CircleBufferGeometry(5, 32);
-                                        // todo cord
+                                        if (feature.properties.kind != 'country') return;
+                                        var geometry = new CircleBufferGeometry(36, 16);
                                         var mesh = new Mesh(geometry, pointMaterial);
+                                        var position = GeoUtils.geoToSphere(_this.radius, feature.geometry.coordinates);
+                                        mesh.position.x = position.x;
+                                        mesh.position.y = position.y;
+                                        mesh.position.z = position.z;
+                                        mesh.lookAt(origin);
                                         group.add(mesh);
+                                    } else if (feature.geometry.type == 'LineString') {
+                                        var _geometry = new Geometry();
+                                        feature.geometry.coordinates.forEach(function (p) {
+                                            _geometry.vertices.push(GeoUtils.geoToSphere(_this.radius, p));
+                                        });
+
+                                        var line = new Line(_geometry, lineMaterial);
+                                        group.add(line);
+                                    } else if (feature.geometry.type == 'Polygon') {
+                                        // feature.geometry.coordinates.forEach(coord => {
+                                        //     const geometry = new THREE.Geometry();
+                                        //     coord.forEach(p => {
+                                        //         geometry.vertices.push(
+                                        //             GeoUtils.geoToSphere(_this.radius, p)
+                                        //         );
+                                        //     });
+
+                                        //     for (var i = 0; i < coord.length; i++) {
+                                        //         geometry.faces.push(new THREE.Face3(i, (i + 1) % coord.length, (i + 2) % coord.length));
+                                        //     }
+
+                                        //     const mesh = new THREE.Mesh(geometry, shapeMaterial);
+                                        //     group.add(mesh);
+                                        // });
                                     }
                                 });
                             }
@@ -45831,8 +45881,8 @@ var lastVisibleExtent = void 0;
 var visibleTiles = void 0;
 var EPS = 0.001;
 
-// 正常球面纬度 转换为 墨卡托投影球面纬度
-// -PI/2 < phi < PI/2
+// 墨卡托投影球面纬度 转换为 正常球面纬度
+// -atan(PI) < phi < atan(PI)
 function webmercatorToGeoDegreePhi(phi) {
     if (phi < -MathUtils.MAXPHI) return -MathUtils.HALFPI + 0.00001;
     if (phi > MathUtils.MAXPHI) return MathUtils.HALFPI - 0.00001;

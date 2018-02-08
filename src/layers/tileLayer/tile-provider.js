@@ -40,7 +40,7 @@ export default {
         return url;
     },
     getMapzenTileUrl: function (level, row, column) {
-        return 'https://tile.mapzen.com/mapzen/vector/v1/all/' +
+        return 'https://tile.mapzen.com/mapzen/vector/v1/512/all/' +
             level + '/' + column + '/' + row +
             '.json?api_key=' + 'mapzen-4SSs12o';
     }

@@ -1,12 +1,21 @@
 import * as THREE from 'three';
 import MathUtils from '../../util/MathUtils';
+import GeoUtils from '../../util/GeoUtils';
 import tileProvider from './tile-provider';
 
 const loader = new THREE.TextureLoader();
-
+const origin = new THREE.Vector3(0, 0, 0);
 const pointMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff0000,
+    color: 0xdd5555,
+    side: THREE.BackSide
+});
+const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0xaaaaaa,
     side: THREE.FrontSide
+});
+const shapeMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    side: THREE.DoubleSide
 });
 
 class Tile {
@@ -23,10 +32,10 @@ class Tile {
         this.height = row === size - 1 ? MathUtils.PI - this.phiStart :
             MathUtils.HALFPI + Math.atan(((2 * (row + 1) / size) - 1) * MathUtils.PI) - this.phiStart;
 
-        this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
-        this.type = 'raster-tile';
-        // this.url = tileProvider.getMapzenTileUrl(this.zoom, this.row, this.col);
-        // this.type = 'vector-tile';
+        // this.url = tileProvider.getBingTileUrl(this.zoom, this.row, this.col);
+        // this.type = 'raster-tile';
+        this.url = tileProvider.getMapzenTileUrl(this.zoom, this.row, this.col);
+        this.type = 'vector-tile';
         // this.load();
     }
     load() {
@@ -34,13 +43,13 @@ class Tile {
 
         if (!this.request) {
             this.request = new XMLHttpRequest();
-            this.request.timeout = 5000; // time in milliseconds
+            this.request.timeout = 10000; // time in milliseconds
         }
 
         const _this = this;
         this.state = 'loading';
         this.request.open('GET', this.url, true);
-        this.request.responseType = this.type == 'raster-tile' ? 'blob' : 'application/json';
+        this.request.responseType = this.type == 'raster-tile' ? 'blob' : 'json';
         this.request.onload = function () {
             if (_this.type == 'raster-tile') {
                 const blob = this.response;
@@ -88,7 +97,7 @@ class Tile {
                 img.src = window.URL.createObjectURL(blob);
             } else if (_this.type == 'vector-tile') {
                 const group = new THREE.Group();
-                const layers = JSON.parse(this.response);
+                const layers = this.response;
                 for (const layerName in layers) {
                     if (layers.hasOwnProperty(layerName)) {
                         const layer = layers[layerName];
@@ -101,10 +110,42 @@ class Tile {
 
                         layer.features.forEach(feature => {
                             if (feature.geometry.type == 'Point') {
-                                const geometry = new THREE.CircleBufferGeometry(5, 32);
-                                // todo cord
+                                if (feature.properties.kind != 'country')
+                                    return;
+                                const geometry = new THREE.CircleBufferGeometry(36, 16);
                                 const mesh = new THREE.Mesh(geometry, pointMaterial);
+                                const position = GeoUtils.geoToSphere(_this.radius, feature.geometry.coordinates);
+                                mesh.position.x = position.x;
+                                mesh.position.y = position.y;
+                                mesh.position.z = position.z;
+                                mesh.lookAt(origin);
                                 group.add(mesh);
+                            } else if (feature.geometry.type == 'LineString') {
+                                const geometry = new THREE.Geometry();
+                                feature.geometry.coordinates.forEach(p => {
+                                    geometry.vertices.push(
+                                        GeoUtils.geoToSphere(_this.radius, p)
+                                    );
+                                });
+
+                                const line = new THREE.Line(geometry, lineMaterial);
+                                group.add(line);
+                            } else if (feature.geometry.type == 'Polygon') {
+                                // feature.geometry.coordinates.forEach(coord => {
+                                //     const geometry = new THREE.Geometry();
+                                //     coord.forEach(p => {
+                                //         geometry.vertices.push(
+                                //             GeoUtils.geoToSphere(_this.radius, p)
+                                //         );
+                                //     });
+
+                                //     for (var i = 0; i < coord.length; i++) {
+                                //         geometry.faces.push(new THREE.Face3(i, (i + 1) % coord.length, (i + 2) % coord.length));
+                                //     }
+
+                                //     const mesh = new THREE.Mesh(geometry, shapeMaterial);
+                                //     group.add(mesh);
+                                // });
                             }
                         });
                     }

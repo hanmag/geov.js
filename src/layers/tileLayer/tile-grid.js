@@ -5,12 +5,6 @@ import Tile from './tile';
 let lastVisibleExtent, visibleTiles;
 const EPS = 0.001;
 
-// 正常球面纬度 转换为 墨卡托投影球面纬度
-// -PI/2 < phi < PI/2
-function geoToWebmercatorDegreePhi(phi) {
-    return Math.atan(2 * phi);
-}
-
 // 墨卡托投影球面纬度 转换为 正常球面纬度
 // -atan(PI) < phi < atan(PI)
 function webmercatorToGeoDegreePhi(phi) {
