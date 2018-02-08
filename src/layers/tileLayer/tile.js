@@ -18,6 +18,8 @@ const shapeMaterial = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide
 });
 
+// todo:  vectortile  rastertile  extend tile
+// todo:  tile factory 对tilegrid屏蔽切片类型
 class Tile {
     constructor(radius, zoom, size, col, row, width) {
         this.id = zoom + '-' + col + '-' + row;
@@ -131,6 +133,14 @@ class Tile {
                                 const line = new THREE.Line(geometry, lineMaterial);
                                 group.add(line);
                             } else if (feature.geometry.type == 'Polygon') {
+                                // 多边形曲面生成算法
+                                // 1、判断是否为凹多边形，分解为一个或多个凸多边形。
+                                // 2、三角化凸多边形，使用three.js中shapeutil提供的三角化方法。
+                                // 3、在每个三角形中随机生成点，生成点的个数与三角形面积成正比，生成算法：矩形随机点=>两边中心点对称映射。
+                                // 4、对每个三角形的所有点分别使用Delaunay三角剖分算法。
+                                // 5、合并多个三角形、合并多个凸多边形。
+                                // 6、得到所有三角面及其顶点。
+
                                 // feature.geometry.coordinates.forEach(coord => {
                                 //     const geometry = new THREE.Geometry();
                                 //     coord.forEach(p => {
