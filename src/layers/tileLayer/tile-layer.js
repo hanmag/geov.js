@@ -55,13 +55,15 @@ export default {
                 side: THREE.DoubleSide
             })
         ));
-        STATE.scene.add(new THREE.Mesh(
+        const mesh = new THREE.Mesh(
             new THREE.SphereGeometry(STATE.radius * 0.99, 32, 32),
             new THREE.MeshBasicMaterial({
                 color: 0x444444,
                 side: THREE.BackSide
             })
-        ));
+        );
+        mesh.renderOrder = 10;
+        STATE.scene.add(mesh);
 
         loadTiles();
     },

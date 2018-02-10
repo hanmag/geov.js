@@ -111,6 +111,7 @@ class Tile {
                         if (layer.features.length == 0) continue;
 
                         layer.features.forEach(feature => {
+                            // 点线面 renderorder 不同
                             if (feature.geometry.type == 'Point') {
                                 if (feature.properties.kind != 'country')
                                     return;

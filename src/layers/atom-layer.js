@@ -16,6 +16,7 @@ export default {
             blending: THREE.AdditiveBlending,
             transparent: true
         });
+        customMesh.renderOrder = 20;
 
         setTimeout(() => {
             STATE.scene.add(customMesh);
