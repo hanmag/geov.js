@@ -1,4 +1,4 @@
-export default class {
+class Layer {
 
     constructor(id) {
         this.setId(id);
@@ -66,4 +66,33 @@ export default class {
     getZIndex() {
         return this._zIndex;
     }
-};
+
+    _bindEarth(earth, zIndex) {
+        if (!earth) {
+            return;
+        }
+        this.earth = earth;
+        this.setZIndex(zIndex);
+    }
+
+    /**
+     * Get the earth that the layer added to
+     * @returns {Earth}
+     */
+    getEarth() {
+        if (this.earth) {
+            return this.earth;
+        }
+        return null;
+    }
+
+    load() {
+
+    }
+
+    update() {
+
+    }
+}
+
+export default Layer;
