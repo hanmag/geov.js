@@ -4,6 +4,7 @@ import {
     isString
 } from '../util/common';
 import Size from '../geo/Size';
+import Coordinate from '../geo/Coordinate';
 import Layer from './Layer';
 
 /*!
@@ -24,7 +25,7 @@ class Earth {
         }
 
         const zoom = options['zoom'];
-        const center = new Coordinate(options['center']);
+        const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
 
         this._loaded = false;
@@ -33,10 +34,10 @@ class Earth {
 
         this._layers = [];
         this._radius = EarthRadius;
-        this._zoomLevel = zoom;
+        this._zoomLevel = zoom ? zoom : 2;
         this._center = center;
 
-        this._updateMapSize(this._getContainerDomSize());
+        this._updateEarthSize(this._getContainerDomSize());
 
         if (layers) {
             this.addLayer(layers);
@@ -120,10 +121,10 @@ class Earth {
     }
 
     _updateEarthSize(eSize) {
-        this.width = mSize['width'];
-        this.height = mSize['height'];
+        this.width = eSize['width'];
+        this.height = eSize['height'];
         // todo
-        // this._getRenderer().updateMapSize(mSize);
+        // this._getRenderer().updateMapSize(eSize);
         // camera this._calcMatrices();
         return this;
     }

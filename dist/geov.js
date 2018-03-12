@@ -45149,7 +45149,10 @@ var EarthControls = EarthControls = function (object, domElement, options) {
 
     this.dynamicDampingFactor = 0.2;
 
-    this.earthRadius = (options !== undefined) ? options.radius : 6371;
+    options = (function (opt) {
+        return opt || {};
+    })(options);
+    this.earthRadius = (options.radius !== undefined) ? options.radius : 6371;
     this.coord = (options.coord !== undefined) ? new Vector2(options.coord[0], options.coord[1]) : new Vector2(0, HALFPI);
     this.zoom = (options.zoom !== undefined) ? options.zoom : 10;
     this.pitch = (options.pitch !== undefined) ? options.pitch : 0;
@@ -45193,6 +45196,7 @@ var EarthControls = EarthControls = function (object, domElement, options) {
     };
 
     this.jumpTo = function (cameraOpts) {
+        validateOptions(cameraOpts);
         this.coordEnd = (cameraOpts.coord !== undefined) ? new Vector2(cameraOpts.coord[0], cameraOpts.coord[1]) : _this.coordEnd;
         this.zoomEnd = (cameraOpts.zoom !== undefined) ? cameraOpts.zoom : _this.zoomEnd;
         this.pitchEnd = (cameraOpts.pitch !== undefined) ? cameraOpts.pitch : _this.pitchEnd;
@@ -45604,6 +45608,93 @@ class Size {
     }
 }
 
+class Coordinate {
+    /**
+     * @param {Number} x - x value
+     * @param {Number} y - y value
+     */
+    constructor(x, y) {
+        if (x && y) {
+            /**
+             * @property {Number} x - value on X-Axis or longitude in degrees
+             */
+            this.x = +(x);
+            /**
+             * @property {Number} y - value on Y-Axis or Latitude in degrees
+             */
+            this.y = +(y);
+        } else if (Array.isArray(x)) {
+            //数组
+            this.x = +(x[0]);
+            this.y = +(x[1]);
+        } else if (x['x'] && x['y']) {
+            //对象
+            this.x = +(x['x']);
+            this.y = +(x['y']);
+        }
+        if (this._isNaN()) {
+            throw new Error('coordinate is NaN');
+        }
+    }
+
+    /**
+     * Returns a copy of the coordinate
+     * @return {Coordinate} copy
+     */
+    copy() {
+        return new Coordinate(this.x, this.y);
+    }
+
+    /**
+     * Compare with another coordinate to see whether they are equal.
+     * @param {Coordinate} c - coordinate to compare
+     * @return {Boolean}
+     */
+    equals(c) {
+        if (!(c instanceof Coordinate)) {
+            return false;
+        }
+        return this.x === c.x && this.y === c.y;
+    }
+
+    /**
+     * Whether the coordinate is NaN
+     * @return {Boolean}
+     * @private
+     */
+    _isNaN() {
+        return isNaN(this.x) || isNaN(this.y);
+    }
+
+    /**
+     * Convert the coordinate to a number array [x, y]
+     * @return {Number[]} number array
+     */
+    toArray() {
+        return [this.x, this.y];
+    }
+
+    /**
+     * Formats coordinate number using fixed-point notation.
+     * @param  {Number} n The number of digits to appear after the decimal point
+     * @return {Coordinate}   fixed coordinate
+     */
+    toFixed(n) {
+        return new Coordinate(this.x.toFixed(n), this.y.toFixed(n));
+    }
+
+    /**
+     * Convert the coordinate to a json object {x : .., y : ..}
+     * @return {Object} json
+     */
+    toJSON() {
+        return {
+            x: this.x,
+            y: this.y
+        };
+    }
+}
+
 class Layer {
 
     constructor(id) {
@@ -45719,7 +45810,7 @@ class Earth {
         }
 
         const zoom = options['zoom'];
-        const center = new Coordinate(options['center']);
+        const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
 
         this._loaded = false;
@@ -45728,10 +45819,10 @@ class Earth {
 
         this._layers = [];
         this._radius = EarthRadius;
-        this._zoomLevel = zoom;
+        this._zoomLevel = zoom ? zoom : 2;
         this._center = center;
 
-        this._updateMapSize(this._getContainerDomSize());
+        this._updateEarthSize(this._getContainerDomSize());
 
         if (layers) {
             this.addLayer(layers);
@@ -45815,10 +45906,10 @@ class Earth {
     }
 
     _updateEarthSize(eSize) {
-        this.width = mSize['width'];
-        this.height = mSize['height'];
+        this.width = eSize['width'];
+        this.height = eSize['height'];
         // todo
-        // this._getRenderer().updateMapSize(mSize);
+        // this._getRenderer().updateMapSize(eSize);
         // camera this._calcMatrices();
         return this;
     }

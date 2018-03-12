@@ -36,7 +36,7 @@
     "uglify-js": "^3.1.10"
   },
   "dependencies": {
-    "earth-camera-controls": "^0.1.6",
+    "earth-camera-controls": "^0.1.8",
     "three": "^0.89.0"
   }
 }
