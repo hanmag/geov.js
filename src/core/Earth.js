@@ -5,7 +5,11 @@ import {
 } from '../util/common';
 import Size from '../geo/Size';
 import Coordinate from '../geo/Coordinate';
+import Browser from './Browser';
+import Universe from './Universe';
 import Layer from './Layer';
+
+const EarthRadius = 6371;
 
 /*!
  * contains code from maptalks.js
@@ -14,9 +18,6 @@ import Layer from './Layer';
  * (c) maptalks.org
  *
  */
-
-const EarthRadius = 6371;
-
 class Earth {
 
     constructor(container, options) {
@@ -24,20 +25,28 @@ class Earth {
             throw new Error('Invalid options when creating earth.');
         }
 
-        const zoom = options['zoom'];
+        const zoom = options['zoom'] ? options['zoom'] : 2;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
 
+        this._radius = EarthRadius;
         this._loaded = false;
+
         this._initContainer(container);
         this._initRenderer();
+        this._updateEarthSize(this._getContainerDomSize());
 
         this._layers = [];
-        this._radius = EarthRadius;
-        this._zoomLevel = zoom ? zoom : 2;
+        this._zoomLevel = zoom;
         this._center = center;
 
-        this._updateEarthSize(this._getContainerDomSize());
+        const opt = {
+            earth: this,
+            galaxy: options['galaxy'] ? options['galaxy'] : true,
+            atmosphere: options['atmosphere'] ? options['atmosphere'] : true,
+            aurora: options['aurora'] ? options['aurora'] : true
+        };
+        this._universe = new Universe(opt);
 
         if (layers) {
             this.addLayer(layers);
@@ -105,6 +114,14 @@ class Earth {
         // this._controls.maxZoom = 19;
         // this._controls.minZoom = 2;
 
+        // Add earth sphere
+        this._earth = new THREE.Mesh();
+        this._earth.geometry = new THREE.SphereGeometry(this._radius, 100, 100);
+        this._earth.material = new THREE.MeshBasicMaterial({
+            color: 0x666666
+        });
+        this._scene.add(this._earth);
+
         let _this = this;
         // Kick-off renderer
         this._rafId = requestAnimationFrame(function animate() {
@@ -114,6 +131,7 @@ class Earth {
             });
 
             _this._controls.update();
+            _this._universe.update(_this._controls);
             _this._renderer.render(_this._scene, _this._camera);
 
             requestAnimationFrame(animate);
@@ -123,9 +141,12 @@ class Earth {
     _updateEarthSize(eSize) {
         this.width = eSize['width'];
         this.height = eSize['height'];
-        // todo
-        // this._getRenderer().updateMapSize(eSize);
-        // camera this._calcMatrices();
+
+        this._renderer.setSize(this.width, this.height);
+        this._camera.aspect = this.width / this.height;
+        this._camera.updateProjectionMatrix();
+        this._controls.handleResize();
+
         return this;
     }
 
@@ -173,7 +194,7 @@ class Earth {
             if (!id) {
                 throw new Error('Invalid id for the layer: ' + id);
             }
-            if (layer.getMap() === this) {
+            if (layer.getEarth() === this) {
                 continue;
             }
             if (this._layerCache[id]) {

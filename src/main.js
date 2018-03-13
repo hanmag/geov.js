@@ -4,4 +4,4 @@ import './core/Earth.Camera';
 
 export { Earth };
 
-export { default as Layer } from './core/Layer';
+// export { default as Layer } from './core/Layer';
