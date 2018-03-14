@@ -45249,7 +45249,7 @@ var EarthControls = EarthControls = function (object, domElement, options) {
     };
 
     var getEyeVector = function (target) {
-        var zoomDistance = Math.pow(1.9, _this.zoom - 1) * _this.earthRadius / 30000;
+        var zoomDistance = Math.pow(1.71, _this.zoom - 1) * _this.earthRadius * 0.0001;
         var origin = new Vector3().setFromSpherical(target);
         target.phi -= EPS;
         var normal = new Vector3().setFromSpherical(target).sub(origin).normalize();
@@ -45788,7 +45788,7 @@ class Universe {
 
         if (opt.galaxy) {
             _this.galaxy = new Mesh();
-            _this.galaxy.geometry = new SphereGeometry(_this.earth._radius * 3, 50, 50);
+            _this.galaxy.geometry = new SphereGeometry(_this.earth._radius * 10, 20, 20);
             _this.galaxy.material = new MeshBasicMaterial({
                 side: BackSide
             });
@@ -45803,7 +45803,7 @@ class Universe {
 
         if (opt.atmosphere) {
             _this.atmosphere = new Mesh();
-            _this.atmosphere.geometry = new SphereGeometry(_this.earth._radius * 1.032, 60, 60);
+            _this.atmosphere.geometry = new SphereGeometry(_this.earth._radius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
             _this.atmosphere.material = new MeshPhongMaterial({
                 transparent: true
@@ -45814,14 +45814,14 @@ class Universe {
                 t.wrapS = t.wrapT = RepeatWrapping;
                 _this.atmosphere.material.map = t;
                 _this.atmosphere.material.needsUpdate = true;
-                _this.atmosphere.renderOrder = 20;
+                _this.atmosphere.renderOrder = 10;
                 _this._comps.add(_this.atmosphere);
             });
         }
 
         if (opt.aurora) {
             _this.aurora = new Mesh();
-            _this.aurora.geometry = new SphereGeometry(_this.earth._radius * 1.036, 120, 120);
+            _this.aurora.geometry = new SphereGeometry(_this.earth._radius * 1.036, 130, 130);
             _this.aurora.material = new ShaderMaterial({
                 uniforms: {},
                 vertexShader: auroraVertexShaderSource,
@@ -45846,8 +45846,8 @@ class Universe {
             }
 
             this.atmosphere.material.opacity = _opacity;
-            this.atmosphere.rotation.y += 0.00001;
-            this.atmosphere.rotation.x -= 0.00003;
+            this.atmosphere.rotation.y += 0.00002;
+            this.atmosphere.rotation.x -= 0.00004;
         }
     }
 }
@@ -45949,7 +45949,8 @@ class Layer {
     }
 }
 
-const EarthRadius = 6371;
+const Unit = 100;
+const EarthRadius = 6371 * Unit;
 
 /*!
  * contains code from maptalks.js
@@ -45965,26 +45966,30 @@ class Earth {
             throw new Error('Invalid options when creating earth.');
         }
 
-        const zoom = options['zoom'] ? options['zoom'] : 2;
+        const zoom = options['zoom'] ? options['zoom'] : 1;
+        const maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
+        const minZoom = options['minZoom'] ? options['minZoom'] : 1;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
 
         this._radius = EarthRadius;
         this._loaded = false;
 
+        this._layers = [];
+        this._zoomLevel = maxZoom - zoom;
+        this._maxLevel = maxZoom;
+        this._minLevel = minZoom;
+        this._center = center;
+
         this._initContainer(container);
         this._initRenderer();
         this._updateEarthSize(this._getContainerDomSize());
 
-        this._layers = [];
-        this._zoomLevel = zoom;
-        this._center = center;
-
         const opt = {
             earth: this,
-            galaxy: options['galaxy'] ? options['galaxy'] : true,
-            atmosphere: options['atmosphere'] ? options['atmosphere'] : true,
-            aurora: options['aurora'] ? options['aurora'] : true
+            galaxy: options['galaxy'] != undefined ? options['galaxy'] : true,
+            atmosphere: options['atmosphere'] != undefined ? options['atmosphere'] : true,
+            aurora: options['aurora'] != undefined ? options['aurora'] : true
         };
         this._universe = new Universe(opt);
 
@@ -46042,17 +46047,20 @@ class Earth {
 
         // Setup camera
         this._camera = new PerspectiveCamera();
-        this._camera.near = 0.1;
-        this._camera.far = 100000;
+        this._camera.near = Unit * 0.1;
+        this._camera.far = this._radius * 100;
 
         // Add lights
         this._camera.add(new PointLight(0xffffff, 1, this._radius));
         this._scene.add(new AmbientLight(0xcccccc));
 
         // Add camera interaction
-        this._controls = new EarthControls$1(this._camera, this._renderer.domElement);
-        // this._controls.maxZoom = 19;
-        // this._controls.minZoom = 2;
+        this._controls = new EarthControls$1(this._camera, this._renderer.domElement, {
+            maxZoom: this._maxLevel,
+            minZoom: this._minLevel,
+            zoom: this._zoomLevel,
+            radius: this._radius
+        });
 
         // Add earth sphere
         this._earth = new Mesh();
@@ -46060,6 +46068,7 @@ class Earth {
         this._earth.material = new MeshBasicMaterial({
             color: 0x666666
         });
+        this._earth.renderOrder = 20;
         this._scene.add(this._earth);
 
         let _this = this;
@@ -46206,6 +46215,10 @@ class Earth {
         this._loaded = true;
     }
 }
+
+Earth.prototype.setBearing = function (bearing) {
+    console.log(bearing);
+};
 
 // export { default as Layer } from './core/Layer';
 

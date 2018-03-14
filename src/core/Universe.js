@@ -14,7 +14,7 @@ class Universe {
 
         if (opt.galaxy) {
             _this.galaxy = new THREE.Mesh();
-            _this.galaxy.geometry = new THREE.SphereGeometry(_this.earth._radius * 3, 50, 50);
+            _this.galaxy.geometry = new THREE.SphereGeometry(_this.earth._radius * 10, 20, 20);
             _this.galaxy.material = new THREE.MeshBasicMaterial({
                 side: THREE.BackSide
             });
@@ -29,7 +29,7 @@ class Universe {
 
         if (opt.atmosphere) {
             _this.atmosphere = new THREE.Mesh();
-            _this.atmosphere.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.032, 60, 60);
+            _this.atmosphere.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
             _this.atmosphere.material = new THREE.MeshPhongMaterial({
                 transparent: true
@@ -40,14 +40,14 @@ class Universe {
                 t.wrapS = t.wrapT = THREE.RepeatWrapping;
                 _this.atmosphere.material.map = t;
                 _this.atmosphere.material.needsUpdate = true;
-                _this.atmosphere.renderOrder = 20;
+                _this.atmosphere.renderOrder = 10;
                 _this._comps.add(_this.atmosphere);
             });
         }
 
         if (opt.aurora) {
             _this.aurora = new THREE.Mesh();
-            _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 120, 120);
+            _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 130, 130);
             _this.aurora.material = new THREE.ShaderMaterial({
                 uniforms: {},
                 vertexShader: auroraVertexShaderSource,
@@ -72,8 +72,8 @@ class Universe {
             }
 
             this.atmosphere.material.opacity = _opacity;
-            this.atmosphere.rotation.y += 0.00001;
-            this.atmosphere.rotation.x -= 0.00003;
+            this.atmosphere.rotation.y += 0.00002;
+            this.atmosphere.rotation.x -= 0.00004;
         }
     }
 }

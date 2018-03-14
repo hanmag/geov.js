@@ -9,7 +9,8 @@ import Browser from './Browser';
 import Universe from './Universe';
 import Layer from './Layer';
 
-const EarthRadius = 6371;
+const Unit = 100;
+const EarthRadius = 6371 * Unit;
 
 /*!
  * contains code from maptalks.js
@@ -25,26 +26,30 @@ class Earth {
             throw new Error('Invalid options when creating earth.');
         }
 
-        const zoom = options['zoom'] ? options['zoom'] : 2;
+        const zoom = options['zoom'] ? options['zoom'] : 1;
+        const maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
+        const minZoom = options['minZoom'] ? options['minZoom'] : 1;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
 
         this._radius = EarthRadius;
         this._loaded = false;
 
+        this._layers = [];
+        this._zoomLevel = maxZoom - zoom;
+        this._maxLevel = maxZoom;
+        this._minLevel = minZoom;
+        this._center = center;
+
         this._initContainer(container);
         this._initRenderer();
         this._updateEarthSize(this._getContainerDomSize());
 
-        this._layers = [];
-        this._zoomLevel = zoom;
-        this._center = center;
-
         const opt = {
             earth: this,
-            galaxy: options['galaxy'] ? options['galaxy'] : true,
-            atmosphere: options['atmosphere'] ? options['atmosphere'] : true,
-            aurora: options['aurora'] ? options['aurora'] : true
+            galaxy: options['galaxy'] != undefined ? options['galaxy'] : true,
+            atmosphere: options['atmosphere'] != undefined ? options['atmosphere'] : true,
+            aurora: options['aurora'] != undefined ? options['aurora'] : true
         };
         this._universe = new Universe(opt);
 
@@ -102,17 +107,20 @@ class Earth {
 
         // Setup camera
         this._camera = new THREE.PerspectiveCamera();
-        this._camera.near = 0.1;
-        this._camera.far = 100000;
+        this._camera.near = Unit * 0.1;
+        this._camera.far = this._radius * 100;
 
         // Add lights
         this._camera.add(new THREE.PointLight(0xffffff, 1, this._radius));
         this._scene.add(new THREE.AmbientLight(0xcccccc));
 
         // Add camera interaction
-        this._controls = new EarthControls(this._camera, this._renderer.domElement);
-        // this._controls.maxZoom = 19;
-        // this._controls.minZoom = 2;
+        this._controls = new EarthControls(this._camera, this._renderer.domElement, {
+            maxZoom: this._maxLevel,
+            minZoom: this._minLevel,
+            zoom: this._zoomLevel,
+            radius: this._radius
+        });
 
         // Add earth sphere
         this._earth = new THREE.Mesh();
@@ -120,6 +128,7 @@ class Earth {
         this._earth.material = new THREE.MeshBasicMaterial({
             color: 0x666666
         });
+        this._earth.renderOrder = 20;
         this._scene.add(this._earth);
 
         let _this = this;
