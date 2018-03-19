@@ -45949,6 +45949,34 @@ class Layer {
     }
 }
 
+function createEasyLayer() {
+    const layer = new Layer('easy-layer');
+    layer.load = () => {
+        let image = new Mesh();
+        image.geometry = new SphereGeometry(layer.earth._radius, 120, 120);
+        image.material = new MeshPhongMaterial({
+            bumpScale: 0.5,
+            specular: new Color('grey'),
+            shininess: 10
+        });
+        image.rotation.y = 3;
+
+        const loader = new TextureLoader();
+        loader.load('textures/2_no_clouds_4k.jpg', function (t) {
+            t.anisotropy = 16;
+            t.wrapS = t.wrapT = RepeatWrapping;
+            image.material.map = t;
+            loader.load('textures/elev_bump_4k.jpg', function (t) {
+                t.anisotropy = 16;
+                t.wrapS = t.wrapT = RepeatWrapping;
+                image.material.bumpMap = t;
+                layer.earth._scene.add(image);
+            });
+        });
+    };
+    return layer;
+}
+
 const Unit = 100;
 const EarthRadius = 6371 * Unit;
 
@@ -45971,6 +45999,7 @@ class Earth {
         const minZoom = options['minZoom'] ? options['minZoom'] : 1;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
+        const easyLayer = options['easyLayer'];
 
         this._radius = EarthRadius;
         this._loaded = false;
@@ -45992,6 +46021,10 @@ class Earth {
             aurora: options['aurora'] != undefined ? options['aurora'] : true
         };
         this._universe = new Universe(opt);
+
+        if (easyLayer) {
+            this.addLayer(createEasyLayer());
+        }
 
         if (layers) {
             this.addLayer(layers);
@@ -46064,7 +46097,7 @@ class Earth {
 
         // Add earth sphere
         this._earth = new Mesh();
-        this._earth.geometry = new SphereGeometry(this._radius, 100, 100);
+        this._earth.geometry = new SphereGeometry(this._radius * 0.95, 100, 100);
         this._earth.material = new MeshBasicMaterial({
             color: 0x666666
         });

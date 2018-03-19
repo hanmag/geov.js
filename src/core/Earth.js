@@ -8,6 +8,9 @@ import Coordinate from '../geo/Coordinate';
 import Browser from './Browser';
 import Universe from './Universe';
 import Layer from './Layer';
+import {
+    createEasyLayer
+} from './BuildIn';
 
 const Unit = 100;
 const EarthRadius = 6371 * Unit;
@@ -31,6 +34,7 @@ class Earth {
         const minZoom = options['minZoom'] ? options['minZoom'] : 1;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
+        const easyLayer = options['easyLayer'];
 
         this._radius = EarthRadius;
         this._loaded = false;
@@ -52,6 +56,10 @@ class Earth {
             aurora: options['aurora'] != undefined ? options['aurora'] : true
         };
         this._universe = new Universe(opt);
+
+        if (easyLayer) {
+            this.addLayer(createEasyLayer());
+        }
 
         if (layers) {
             this.addLayer(layers);
@@ -124,7 +132,7 @@ class Earth {
 
         // Add earth sphere
         this._earth = new THREE.Mesh();
-        this._earth.geometry = new THREE.SphereGeometry(this._radius, 100, 100);
+        this._earth.geometry = new THREE.SphereGeometry(this._radius * 0.95, 100, 100);
         this._earth.material = new THREE.MeshBasicMaterial({
             color: 0x666666
         });

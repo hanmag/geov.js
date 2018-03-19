@@ -1,11 +1,9 @@
-GeoV.js
-=======
+# geov.js
 
-### Features ###
-* 基础三维地球功能：旋转、缩放。
-* 可扩展地图样式风格自由切换。
+## Features
 
-### References ###
-* https://github.com/AnalyticalGraphicsInc/cesium
-* https://github.com/dataarts/webgl-globe
-* https://github.com/turban/webgl-earth
+### References
+
+* <https://github.com/AnalyticalGraphicsInc/cesium>
+* <https://github.com/maptalks/maptalks.js>
+* <https://github.com/turban/webgl-earth>
