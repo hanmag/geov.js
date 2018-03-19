@@ -12,14 +12,14 @@ class Universe {
         this._comps = new THREE.Group();
         let _this = this;
 
-        if (opt.galaxy) {
+        if (opt.galaxyURL) {
             _this.galaxy = new THREE.Mesh();
             _this.galaxy.geometry = new THREE.SphereGeometry(_this.earth._radius * 10, 20, 20);
             _this.galaxy.material = new THREE.MeshBasicMaterial({
                 side: THREE.BackSide
             });
 
-            new THREE.TextureLoader().load('textures/galaxy_starfield.png', function (t) {
+            new THREE.TextureLoader().load(opt.galaxyURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = THREE.RepeatWrapping;
                 _this.galaxy.material.map = t;
@@ -27,7 +27,7 @@ class Universe {
             });
         }
 
-        if (opt.atmosphere) {
+        if (opt.atmosphereURL) {
             _this.atmosphere = new THREE.Mesh();
             _this.atmosphere.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
@@ -35,7 +35,7 @@ class Universe {
                 transparent: true
             });
 
-            new THREE.TextureLoader().load('textures/fair_clouds_4k.png', function (t) {
+            new THREE.TextureLoader().load(opt.atmosphereURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = THREE.RepeatWrapping;
                 _this.atmosphere.material.map = t;
@@ -64,7 +64,7 @@ class Universe {
 
     update(controls) {
         if (this.atmosphere) {
-            const _opacity = (controls.zoom - 13) * 0.07;
+            const _opacity = (controls.zoom - 13) * 0.09;
             if (_opacity < 0.1 && this.atmosphere.material.opacity >= 0.1) {
                 this._comps.remove(this.atmosphere);
             } else if (_opacity >= 0.1 && this.atmosphere.material.opacity < 0.1) {

@@ -1,6 +1,6 @@
 {
-  "name": "geov",
-  "version": "0.0.0",
+  "name": "geov.js",
+  "version": "0.0.1",
   "description": "",
   "scripts": {
     "watch": "rollup -c -w",
@@ -27,8 +27,10 @@
   "homepage": "https://github.com/hanmag/geov.js#readme",
   "devDependencies": {
     "babel-core": "^6.26.0",
+    "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.6.1",
     "rollup": "^0.51.8",
+    "rollup-plugin-babel": "^3.0.3",
     "rollup-plugin-glsl": "^1.1.0",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-postcss": "^0.5.5",

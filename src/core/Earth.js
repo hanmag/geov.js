@@ -49,16 +49,18 @@ class Earth {
         this._initRenderer();
         this._updateEarthSize(this._getContainerDomSize());
 
-        const opt = {
+        this._universe = new Universe({
             earth: this,
-            galaxy: options['galaxy'] != undefined ? options['galaxy'] : true,
-            atmosphere: options['atmosphere'] != undefined ? options['atmosphere'] : true,
+            galaxyURL: options['galaxy'] != undefined ? options['galaxy'] : 'textures/galaxy_starfield.png',
+            atmosphereURL: options['atmosphere'] != undefined ? options['atmosphere'] : 'textures/fair_clouds_4k.png',
             aurora: options['aurora'] != undefined ? options['aurora'] : true
-        };
-        this._universe = new Universe(opt);
+        });
 
         if (easyLayer) {
-            this.addLayer(createEasyLayer());
+            this.addLayer(createEasyLayer({
+                baseURL: options['baseURL'] != undefined ? options['baseURL'] : 'textures/2_no_clouds_4k.jpg',
+                bumpURL: options['bumpURL'] != undefined ? options['bumpURL'] : 'textures/elev_bump_4k.jpg'
+            }));
         }
 
         if (layers) {
@@ -132,9 +134,9 @@ class Earth {
 
         // Add earth sphere
         this._earth = new THREE.Mesh();
-        this._earth.geometry = new THREE.SphereGeometry(this._radius * 0.95, 100, 100);
+        this._earth.geometry = new THREE.SphereGeometry(this._radius * 0.97, 100, 100);
         this._earth.material = new THREE.MeshBasicMaterial({
-            color: 0x666666
+            color: 0x555555
         });
         this._earth.renderOrder = 20;
         this._scene.add(this._earth);

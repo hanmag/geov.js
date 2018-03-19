@@ -1,14 +1,15 @@
 import postCss from 'rollup-plugin-postcss';
 import resolve from 'rollup-plugin-node-resolve';
 import glsl from 'rollup-plugin-glsl';
+import babel from 'rollup-plugin-babel'
 import pkg from './package.json';
 
 export default {
     input: 'src/main.js',
     output: [{
         format: 'umd',
-        name: `${pkg.name}`,
-        file: `dist/${pkg.name}.js`,
+        name: `geov`,
+        file: `dist/geov.js`,
         sourcemap: false,
         extend: true
     }],
@@ -18,6 +19,9 @@ export default {
         glsl({
             include: 'src/shaders/*.glsl',
             sourceMap: false
+        }),
+        babel({
+            exclude: 'node_modules/**',
         })
     ],
     banner: `// Version ${pkg.version} ${pkg.name} - ${pkg.homepage}`,

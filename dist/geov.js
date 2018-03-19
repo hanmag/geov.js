@@ -1,4 +1,4 @@
-// Version 0.0.0 geov - https://github.com/hanmag/geov.js#readme
+// Version 0.0.1 geov.js - https://github.com/hanmag/geov.js#readme
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -45484,7 +45484,7 @@ function isString(obj) {
     if (!obj) {
         return false;
     }
-    return typeof obj === 'string' || (obj.constructor !== null && obj.constructor === String);
+    return typeof obj === 'string' || obj.constructor !== null && obj.constructor === String;
 }
 
 /**
@@ -45494,7 +45494,7 @@ function isString(obj) {
  * @memberOf Util
  */
 function isNumber(val) {
-    return (typeof val === 'number') && !isNaN(val);
+    return typeof val === 'number' && !isNaN(val);
 }
 
 /**
@@ -45504,17 +45504,44 @@ function isNumber(val) {
  * @memberOf Util
  */
 
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
 /**
  * Represents a size.
  * @category basic types
  */
-class Size {
+
+var Size = function () {
 
     /**
      * @param {Number} width - width value
      * @param {Number} height - height value
      */
-    constructor(width, height) {
+    function Size(width, height) {
+        classCallCheck(this, Size);
+
         if (isNumber(width) && isNumber(height)) {
             /**
              * @property {Number} width - width
@@ -45537,100 +45564,126 @@ class Size {
      * Returns a copy of the size
      * @return {Size} copy
      */
-    copy() {
-        return new Size(this['width'], this['height']);
-    }
 
-    /**
-     * Returns the result of addition of another size.
-     * @param {Size} size - size to add
-     * @return {Size} result
-     */
-    add(x, y) {
-        let w, h;
-        if (x instanceof Size) {
-            w = this.width + x.width;
-            h = this.height + x.height;
-        } else {
-            w = this.width + x;
-            h = this.height + y;
+
+    createClass(Size, [{
+        key: 'copy',
+        value: function copy() {
+            return new Size(this['width'], this['height']);
         }
-        return new Size(w, h);
-    }
 
-    /**
-     * Compare with another size to see whether they are equal.
-     * @param {Size} size - size to compare
-     * @return {Boolean}
-     */
-    equals(size) {
-        return this['width'] === size['width'] && this['height'] === size['height'];
-    }
+        /**
+         * Returns the result of addition of another size.
+         * @param {Size} size - size to add
+         * @return {Size} result
+         */
 
-    /**
-     * Returns the result of multiplication of the current size by the given number.
-     * @param {Number} ratio - ratio to multi
-     * @return {Size} result
-     */
-    multi(ratio) {
-        return new Size(this['width'] * ratio, this['height'] * ratio);
-    }
+    }, {
+        key: 'add',
+        value: function add(x, y) {
+            var w = void 0,
+                h = void 0;
+            if (x instanceof Size) {
+                w = this.width + x.width;
+                h = this.height + x.height;
+            } else {
+                w = this.width + x;
+                h = this.height + y;
+            }
+            return new Size(w, h);
+        }
 
-    _multi(ratio) {
-        this['width'] *= ratio;
-        this['height'] *= ratio;
-        return this;
-    }
+        /**
+         * Compare with another size to see whether they are equal.
+         * @param {Size} size - size to compare
+         * @return {Boolean}
+         */
 
-    _round() {
-        this['width'] = Math.round(this['width']);
-        this['height'] = Math.round(this['height']);
-        return this;
-    }
+    }, {
+        key: 'equals',
+        value: function equals(size) {
+            return this['width'] === size['width'] && this['height'] === size['height'];
+        }
 
-    /**
-     * Converts the size object to an array [width, height]
-     * @return {Number[]}
-     */
-    toArray() {
-        return [this['width'], this['height']];
-    }
+        /**
+         * Returns the result of multiplication of the current size by the given number.
+         * @param {Number} ratio - ratio to multi
+         * @return {Size} result
+         */
 
-    /**
-     * Convert the size object to a json object {width : .., height : ..}
-     * @return {Object} json
-     */
-    toJSON() {
-        return {
-            'width': this['width'],
-            'height': this['height']
-        };
-    }
-}
+    }, {
+        key: 'multi',
+        value: function multi(ratio) {
+            return new Size(this['width'] * ratio, this['height'] * ratio);
+        }
+    }, {
+        key: '_multi',
+        value: function _multi(ratio) {
+            this['width'] *= ratio;
+            this['height'] *= ratio;
+            return this;
+        }
+    }, {
+        key: '_round',
+        value: function _round() {
+            this['width'] = Math.round(this['width']);
+            this['height'] = Math.round(this['height']);
+            return this;
+        }
 
-class Coordinate {
+        /**
+         * Converts the size object to an array [width, height]
+         * @return {Number[]}
+         */
+
+    }, {
+        key: 'toArray',
+        value: function toArray$$1() {
+            return [this['width'], this['height']];
+        }
+
+        /**
+         * Convert the size object to a json object {width : .., height : ..}
+         * @return {Object} json
+         */
+
+    }, {
+        key: 'toJSON',
+        value: function toJSON() {
+            return {
+                'width': this['width'],
+                'height': this['height']
+            };
+        }
+    }]);
+    return Size;
+}();
+
+var Coordinate = function () {
     /**
      * @param {Number} x - x value
      * @param {Number} y - y value
      */
-    constructor(x, y) {
+    function Coordinate(x, y) {
+        classCallCheck(this, Coordinate);
+
         if (x && y) {
             /**
              * @property {Number} x - value on X-Axis or longitude in degrees
              */
-            this.x = +(x);
+            this.x = +x;
             /**
              * @property {Number} y - value on Y-Axis or Latitude in degrees
              */
-            this.y = +(y);
+            this.y = +y;
         } else if (Array.isArray(x)) {
             //数组
-            this.x = +(x[0]);
-            this.y = +(x[1]);
+            this.x = +x[0];
+            this.y = +x[1];
         } else if (x['x'] && x['y']) {
             //对象
-            this.x = +(x['x']);
-            this.y = +(x['y']);
+            this.x = +x['x'];
+            this.y = +x['y'];
         }
         if (this._isNaN()) {
             throw new Error('coordinate is NaN');
@@ -45641,92 +45694,111 @@ class Coordinate {
      * Returns a copy of the coordinate
      * @return {Coordinate} copy
      */
-    copy() {
-        return new Coordinate(this.x, this.y);
-    }
 
-    /**
-     * Compare with another coordinate to see whether they are equal.
-     * @param {Coordinate} c - coordinate to compare
-     * @return {Boolean}
-     */
-    equals(c) {
-        if (!(c instanceof Coordinate)) {
-            return false;
+
+    createClass(Coordinate, [{
+        key: 'copy',
+        value: function copy() {
+            return new Coordinate(this.x, this.y);
         }
-        return this.x === c.x && this.y === c.y;
-    }
 
-    /**
-     * Whether the coordinate is NaN
-     * @return {Boolean}
-     * @private
-     */
-    _isNaN() {
-        return isNaN(this.x) || isNaN(this.y);
-    }
+        /**
+         * Compare with another coordinate to see whether they are equal.
+         * @param {Coordinate} c - coordinate to compare
+         * @return {Boolean}
+         */
 
-    /**
-     * Convert the coordinate to a number array [x, y]
-     * @return {Number[]} number array
-     */
-    toArray() {
-        return [this.x, this.y];
-    }
+    }, {
+        key: 'equals',
+        value: function equals(c) {
+            if (!(c instanceof Coordinate)) {
+                return false;
+            }
+            return this.x === c.x && this.y === c.y;
+        }
 
-    /**
-     * Formats coordinate number using fixed-point notation.
-     * @param  {Number} n The number of digits to appear after the decimal point
-     * @return {Coordinate}   fixed coordinate
-     */
-    toFixed(n) {
-        return new Coordinate(this.x.toFixed(n), this.y.toFixed(n));
-    }
+        /**
+         * Whether the coordinate is NaN
+         * @return {Boolean}
+         * @private
+         */
 
-    /**
-     * Convert the coordinate to a json object {x : .., y : ..}
-     * @return {Object} json
-     */
-    toJSON() {
-        return {
-            x: this.x,
-            y: this.y
-        };
-    }
-}
+    }, {
+        key: '_isNaN',
+        value: function _isNaN() {
+            return isNaN(this.x) || isNaN(this.y);
+        }
 
-let Browser = {};
+        /**
+         * Convert the coordinate to a number array [x, y]
+         * @return {Number[]} number array
+         */
 
-const ua = navigator.userAgent.toLowerCase();
-const doc = document.documentElement;
-const ie = 'ActiveXObject' in window;
-const webkit = ua.indexOf('webkit') !== -1;
-const phantomjs = ua.indexOf('phantom') !== -1;
-const android23 = ua.search('android [23]') !== -1;
-const chrome = ua.indexOf('chrome') !== -1;
-const gecko = ua.indexOf('gecko') !== -1 && !webkit && !window.opera && !ie;
-const mobile = typeof orientation !== 'undefined' || ua.indexOf('mobile') !== -1;
-const msPointer = !window.PointerEvent && window.MSPointerEvent;
-const pointer = (window.PointerEvent && navigator.pointerEnabled) || msPointer;
-const ie3d = ie && ('transition' in doc.style);
-const webkit3d = ('WebKitCSSMatrix' in window) && ('m11' in new window.WebKitCSSMatrix()) && !android23;
-const gecko3d = 'MozPerspective' in doc.style;
-const opera12 = 'OTransition' in doc.style;
-const any3d = (ie3d || webkit3d || gecko3d) && !opera12 && !phantomjs;
+    }, {
+        key: 'toArray',
+        value: function toArray$$1() {
+            return [this.x, this.y];
+        }
 
-let chromeVersion = 0;
+        /**
+         * Formats coordinate number using fixed-point notation.
+         * @param  {Number} n The number of digits to appear after the decimal point
+         * @return {Coordinate}   fixed coordinate
+         */
+
+    }, {
+        key: 'toFixed',
+        value: function toFixed(n) {
+            return new Coordinate(this.x.toFixed(n), this.y.toFixed(n));
+        }
+
+        /**
+         * Convert the coordinate to a json object {x : .., y : ..}
+         * @return {Object} json
+         */
+
+    }, {
+        key: 'toJSON',
+        value: function toJSON() {
+            return {
+                x: this.x,
+                y: this.y
+            };
+        }
+    }]);
+    return Coordinate;
+}();
+
+var Browser = {};
+
+var ua = navigator.userAgent.toLowerCase();
+var doc = document.documentElement;
+var ie = 'ActiveXObject' in window;
+var webkit = ua.indexOf('webkit') !== -1;
+var phantomjs = ua.indexOf('phantom') !== -1;
+var android23 = ua.search('android [23]') !== -1;
+var chrome = ua.indexOf('chrome') !== -1;
+var gecko = ua.indexOf('gecko') !== -1 && !webkit && !window.opera && !ie;
+var mobile = typeof orientation !== 'undefined' || ua.indexOf('mobile') !== -1;
+var msPointer = !window.PointerEvent && window.MSPointerEvent;
+var pointer = window.PointerEvent && navigator.pointerEnabled || msPointer;
+var ie3d = ie && 'transition' in doc.style;
+var webkit3d = 'WebKitCSSMatrix' in window && 'm11' in new window.WebKitCSSMatrix() && !android23;
+var gecko3d = 'MozPerspective' in doc.style;
+var opera12 = 'OTransition' in doc.style;
+var any3d = (ie3d || webkit3d || gecko3d) && !opera12 && !phantomjs;
+
+var chromeVersion = 0;
 if (chrome) {
     chromeVersion = ua.match(/chrome\/([\d.]+)/)[1];
 }
 
-const touch = !phantomjs && (pointer || 'ontouchstart' in window ||
-    (window.DocumentTouch && document instanceof window.DocumentTouch));
+var touch = !phantomjs && (pointer || 'ontouchstart' in window || window.DocumentTouch && document instanceof window.DocumentTouch);
 
-let webgl;
+var webgl = void 0;
 try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') ||
-        canvas.getContext('experimental-webgl');
+    var canvas = document.createElement('canvas');
+    var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     webgl = gl && gl instanceof WebGLRenderingContext;
 } catch (err) {
     webgl = false;
@@ -45761,11 +45833,11 @@ Browser = {
     msPointer: !!msPointer,
     pointer: !!pointer,
 
-    retina: (window.devicePixelRatio || (window.screen.deviceXDPI / window.screen.logicalXDPI)) > 1,
+    retina: (window.devicePixelRatio || window.screen.deviceXDPI / window.screen.logicalXDPI) > 1,
 
     language: navigator.browserLanguage ? navigator.browserLanguage : navigator.language,
-    ie9: (ie && document.documentMode === 9),
-    ie10: (ie && document.documentMode === 10),
+    ie9: ie && document.documentMode === 9,
+    ie10: ie && document.documentMode === 10,
 
     webgl: webgl
 };
@@ -45776,24 +45848,26 @@ var auroraVertexShaderSource = "varying vec3 vNormal;void main(){vNormal=normali
 
 var auroraFragmentShaderSource = "varying vec3 vNormal;void main(){float intensity=pow(1.32-dot(vNormal,vec3(0,0,1.0)),8.0);if(intensity>12.0)intensity=intensity*0.06;else if(intensity>3.0)intensity=9.0/intensity;gl_FragColor=vec4(0.3,0.5,1.0,0.3)*intensity;}";
 
-class Universe {
-    constructor(opt) {
+var Universe = function () {
+    function Universe(opt) {
+        classCallCheck(this, Universe);
+
         if (!opt.earth) {
             throw new Error('Can not build a Universe without Earth.');
         }
 
         this.earth = opt.earth;
         this._comps = new Group();
-        let _this = this;
+        var _this = this;
 
-        if (opt.galaxy) {
+        if (opt.galaxyURL) {
             _this.galaxy = new Mesh();
             _this.galaxy.geometry = new SphereGeometry(_this.earth._radius * 10, 20, 20);
             _this.galaxy.material = new MeshBasicMaterial({
                 side: BackSide
             });
 
-            new TextureLoader().load('textures/galaxy_starfield.png', function (t) {
+            new TextureLoader().load(opt.galaxyURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = RepeatWrapping;
                 _this.galaxy.material.map = t;
@@ -45801,7 +45875,7 @@ class Universe {
             });
         }
 
-        if (opt.atmosphere) {
+        if (opt.atmosphereURL) {
             _this.atmosphere = new Mesh();
             _this.atmosphere.geometry = new SphereGeometry(_this.earth._radius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
@@ -45809,7 +45883,7 @@ class Universe {
                 transparent: true
             });
 
-            new TextureLoader().load('textures/fair_clouds_4k.png', function (t) {
+            new TextureLoader().load(opt.atmosphereURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = RepeatWrapping;
                 _this.atmosphere.material.map = t;
@@ -45836,25 +45910,30 @@ class Universe {
         this.earth._scene.add(this._comps);
     }
 
-    update(controls) {
-        if (this.atmosphere) {
-            const _opacity = (controls.zoom - 13) * 0.07;
-            if (_opacity < 0.1 && this.atmosphere.material.opacity >= 0.1) {
-                this._comps.remove(this.atmosphere);
-            } else if (_opacity >= 0.1 && this.atmosphere.material.opacity < 0.1) {
-                this._comps.add(this.atmosphere);
+    createClass(Universe, [{
+        key: 'update',
+        value: function update(controls) {
+            if (this.atmosphere) {
+                var _opacity = (controls.zoom - 13) * 0.09;
+                if (_opacity < 0.1 && this.atmosphere.material.opacity >= 0.1) {
+                    this._comps.remove(this.atmosphere);
+                } else if (_opacity >= 0.1 && this.atmosphere.material.opacity < 0.1) {
+                    this._comps.add(this.atmosphere);
+                }
+
+                this.atmosphere.material.opacity = _opacity;
+                this.atmosphere.rotation.y += 0.00002;
+                this.atmosphere.rotation.x -= 0.00004;
             }
-
-            this.atmosphere.material.opacity = _opacity;
-            this.atmosphere.rotation.y += 0.00002;
-            this.atmosphere.rotation.x -= 0.00004;
         }
-    }
-}
+    }]);
+    return Universe;
+}();
 
-class Layer {
+var Layer = function () {
+    function Layer(id) {
+        classCallCheck(this, Layer);
 
-    constructor(id) {
         this.setId(id);
     }
 
@@ -45862,97 +45941,120 @@ class Layer {
      * Get the layer id
      * @returns {String} id
      */
-    getId() {
-        return this._id;
-    }
 
-    /**
-     * Set a new id to the layer
-     * @param {String} id - new layer id
-     * @return {Layer} this
-     */
-    setId(id) {
-        if (id) {
-            id = id + '';
+
+    createClass(Layer, [{
+        key: 'getId',
+        value: function getId() {
+            return this._id;
         }
-        this._id = id;
-        return this;
-    }
 
-    /**
-     * Adds itself to earth.
-     * @param {Earth} earth - earth added to
-     * @return {Layer} this
-     */
-    addTo(earth) {
-        earth.addLayer(this);
-        return this;
-    }
+        /**
+         * Set a new id to the layer
+         * @param {String} id - new layer id
+         * @return {Layer} this
+         */
 
-    /**
-     * Remove itself from the earth added to.
-     * @returns {Layer} this
-     */
-    remove() {
-        if (this.earth) {
-            this.earth.removeLayer(this);
+    }, {
+        key: 'setId',
+        value: function setId(id) {
+            if (id) {
+                id = id + '';
+            }
+            this._id = id;
+            return this;
         }
-        return this;
-    }
 
-    /**
-     * Set a z-index to the layer
-     * @param {Number} zIndex - layer's z-index
-     * @return {Layer} this
-     */
-    setZIndex(zIndex) {
-        this._zIndex = zIndex;
-        if (this.earth) {
-            // this.earth._sortLayersByZIndex();
+        /**
+         * Adds itself to earth.
+         * @param {Earth} earth - earth added to
+         * @return {Layer} this
+         */
+
+    }, {
+        key: 'addTo',
+        value: function addTo(earth) {
+            earth.addLayer(this);
+            return this;
         }
-        return this;
-    }
 
-    /**
-     * Get the layer's z-index
-     * @return {Number}
-     */
-    getZIndex() {
-        return this._zIndex;
-    }
+        /**
+         * Remove itself from the earth added to.
+         * @returns {Layer} this
+         */
 
-    _bindEarth(earth, zIndex) {
-        if (!earth) {
-            return;
+    }, {
+        key: 'remove',
+        value: function remove() {
+            if (this.earth) {
+                this.earth.removeLayer(this);
+            }
+            return this;
         }
-        this.earth = earth;
-        this.setZIndex(zIndex);
-    }
 
-    /**
-     * Get the earth that the layer added to
-     * @returns {Earth}
-     */
-    getEarth() {
-        if (this.earth) {
-            return this.earth;
+        /**
+         * Set a z-index to the layer
+         * @param {Number} zIndex - layer's z-index
+         * @return {Layer} this
+         */
+
+    }, {
+        key: 'setZIndex',
+        value: function setZIndex(zIndex) {
+            this._zIndex = zIndex;
+            if (this.earth) {
+                // this.earth._sortLayersByZIndex();
+            }
+            return this;
         }
-        return null;
-    }
 
-    load() {
+        /**
+         * Get the layer's z-index
+         * @return {Number}
+         */
 
-    }
+    }, {
+        key: 'getZIndex',
+        value: function getZIndex() {
+            return this._zIndex;
+        }
+    }, {
+        key: '_bindEarth',
+        value: function _bindEarth(earth, zIndex) {
+            if (!earth) {
+                return;
+            }
+            this.earth = earth;
+            this.setZIndex(zIndex);
+        }
 
-    update() {
+        /**
+         * Get the earth that the layer added to
+         * @returns {Earth}
+         */
 
-    }
-}
+    }, {
+        key: 'getEarth',
+        value: function getEarth() {
+            if (this.earth) {
+                return this.earth;
+            }
+            return null;
+        }
+    }, {
+        key: 'load',
+        value: function load() {}
+    }, {
+        key: 'update',
+        value: function update() {}
+    }]);
+    return Layer;
+}();
 
-function createEasyLayer() {
-    const layer = new Layer('easy-layer');
-    layer.load = () => {
-        let image = new Mesh();
+function createEasyLayer(opt) {
+    var layer = new Layer('easy-layer');
+    layer.load = function () {
+        var image = new Mesh();
         image.geometry = new SphereGeometry(layer.earth._radius, 120, 120);
         image.material = new MeshPhongMaterial({
             bumpScale: 0.5,
@@ -45961,12 +46063,12 @@ function createEasyLayer() {
         });
         image.rotation.y = 3;
 
-        const loader = new TextureLoader();
-        loader.load('textures/2_no_clouds_4k.jpg', function (t) {
+        var loader = new TextureLoader();
+        loader.load(opt.baseURL, function (t) {
             t.anisotropy = 16;
             t.wrapS = t.wrapT = RepeatWrapping;
             image.material.map = t;
-            loader.load('textures/elev_bump_4k.jpg', function (t) {
+            loader.load(opt.bumpURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = RepeatWrapping;
                 image.material.bumpMap = t;
@@ -45977,8 +46079,8 @@ function createEasyLayer() {
     return layer;
 }
 
-const Unit = 100;
-const EarthRadius = 6371 * Unit;
+var Unit = 100;
+var EarthRadius = 6371 * Unit;
 
 /*!
  * contains code from maptalks.js
@@ -45987,19 +46089,21 @@ const EarthRadius = 6371 * Unit;
  * (c) maptalks.org
  *
  */
-class Earth {
 
-    constructor(container, options) {
+var Earth = function () {
+    function Earth(container, options) {
+        classCallCheck(this, Earth);
+
         if (!options) {
             throw new Error('Invalid options when creating earth.');
         }
 
-        const zoom = options['zoom'] ? options['zoom'] : 1;
-        const maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
-        const minZoom = options['minZoom'] ? options['minZoom'] : 1;
-        const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
-        const layers = options['layers'];
-        const easyLayer = options['easyLayer'];
+        var zoom = options['zoom'] ? options['zoom'] : 1;
+        var maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
+        var minZoom = options['minZoom'] ? options['minZoom'] : 1;
+        var center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
+        var layers = options['layers'];
+        var easyLayer = options['easyLayer'];
 
         this._radius = EarthRadius;
         this._loaded = false;
@@ -46014,16 +46118,18 @@ class Earth {
         this._initRenderer();
         this._updateEarthSize(this._getContainerDomSize());
 
-        const opt = {
+        this._universe = new Universe({
             earth: this,
-            galaxy: options['galaxy'] != undefined ? options['galaxy'] : true,
-            atmosphere: options['atmosphere'] != undefined ? options['atmosphere'] : true,
+            galaxyURL: options['galaxy'] != undefined ? options['galaxy'] : 'textures/galaxy_starfield.png',
+            atmosphereURL: options['atmosphere'] != undefined ? options['atmosphere'] : 'textures/fair_clouds_4k.png',
             aurora: options['aurora'] != undefined ? options['aurora'] : true
-        };
-        this._universe = new Universe(opt);
+        });
 
         if (easyLayer) {
-            this.addLayer(createEasyLayer());
+            this.addLayer(createEasyLayer({
+                baseURL: options['baseURL'] != undefined ? options['baseURL'] : 'textures/2_no_clouds_4k.jpg',
+                bumpURL: options['bumpURL'] != undefined ? options['bumpURL'] : 'textures/elev_bump_4k.jpg'
+            }));
         }
 
         if (layers) {
@@ -46033,221 +46139,238 @@ class Earth {
         this._load();
     }
 
-    _initContainer(container) {
-        if (isString(container)) {
-            this._containerDOM = document.getElementById(container);
-            if (!this._containerDOM) {
-                throw new Error('Invalid container when creating earth: \'' + container + '\'');
+    createClass(Earth, [{
+        key: '_initContainer',
+        value: function _initContainer(container) {
+            if (isString(container)) {
+                this._containerDOM = document.getElementById(container);
+                if (!this._containerDOM) {
+                    throw new Error('Invalid container when creating earth: \'' + container + '\'');
+                }
+            } else {
+                this._containerDOM = container;
             }
-        } else {
-            this._containerDOM = container;
-        }
 
-        if (this._containerDOM.childNodes && this._containerDOM.childNodes.length > 0) {
-            if (this._containerDOM.childNodes[0].className === 'geov-wrapper') {
-                throw new Error('Container is already loaded with another earth instance, use earth.remove() to clear it.');
+            if (this._containerDOM.childNodes && this._containerDOM.childNodes.length > 0) {
+                if (this._containerDOM.childNodes[0].className === 'geov-wrapper') {
+                    throw new Error('Container is already loaded with another earth instance, use earth.remove() to clear it.');
+                }
             }
+
+            // Wipe DOM
+            this._containerDOM.innerHTML = '';
+            // Add info space
+            this._containerDOM.appendChild(this._infoElem = document.createElement('div'));
+            this._infoElem.className = 'geov-info-msg';
+            // Setup tooltip
+            this._containerDOM.appendChild(this._toolTipElem = document.createElement('div'));
+            this._toolTipElem.className = 'geov-tooltip';
         }
+    }, {
+        key: '_initRenderer',
+        value: function _initRenderer() {
+            if (this._rafId) {
+                cancelAnimationFrame(this._rafId);
+                this._rafId = null;
+            }
 
-        // Wipe DOM
-        this._containerDOM.innerHTML = '';
-        // Add info space
-        this._containerDOM.appendChild(this._infoElem = document.createElement('div'));
-        this._infoElem.className = 'geov-info-msg';
-        // Setup tooltip
-        this._containerDOM.appendChild(this._toolTipElem = document.createElement('div'));
-        this._toolTipElem.className = 'geov-tooltip';
-    }
+            // Setup webgl renderer
+            this._renderer = new WebGLRenderer({
+                antialias: true
+            });
+            this._renderer.shadowMap.enabled = true;
+            this._renderer.setClearColor(0x000000);
+            this._renderer.setPixelRatio(window.devicePixelRatio);
+            this._renderer.domElement.className += 'geov-wrapper';
+            this._containerDOM.appendChild(this._renderer.domElement);
 
-    _initRenderer() {
-        if (this._rafId) {
-            cancelAnimationFrame(this._rafId);
-            this._rafId = null;
-        }
+            // Setup scenes
+            this._scene = new Scene();
 
-        // Setup webgl renderer
-        this._renderer = new WebGLRenderer({
-            antialias: true
-        });
-        this._renderer.shadowMap.enabled = true;
-        this._renderer.setClearColor(0x000000);
-        this._renderer.setPixelRatio(window.devicePixelRatio);
-        this._renderer.domElement.className += 'geov-wrapper';
-        this._containerDOM.appendChild(this._renderer.domElement);
+            // Setup camera
+            this._camera = new PerspectiveCamera();
+            this._camera.near = Unit * 0.1;
+            this._camera.far = this._radius * 100;
 
-        // Setup scenes
-        this._scene = new Scene();
+            // Add lights
+            this._camera.add(new PointLight(0xffffff, 1, this._radius));
+            this._scene.add(new AmbientLight(0xcccccc));
 
-        // Setup camera
-        this._camera = new PerspectiveCamera();
-        this._camera.near = Unit * 0.1;
-        this._camera.far = this._radius * 100;
-
-        // Add lights
-        this._camera.add(new PointLight(0xffffff, 1, this._radius));
-        this._scene.add(new AmbientLight(0xcccccc));
-
-        // Add camera interaction
-        this._controls = new EarthControls$1(this._camera, this._renderer.domElement, {
-            maxZoom: this._maxLevel,
-            minZoom: this._minLevel,
-            zoom: this._zoomLevel,
-            radius: this._radius
-        });
-
-        // Add earth sphere
-        this._earth = new Mesh();
-        this._earth.geometry = new SphereGeometry(this._radius * 0.95, 100, 100);
-        this._earth.material = new MeshBasicMaterial({
-            color: 0x666666
-        });
-        this._earth.renderOrder = 20;
-        this._scene.add(this._earth);
-
-        let _this = this;
-        // Kick-off renderer
-        this._rafId = requestAnimationFrame(function animate() {
-            // Frame cycle
-            _this._layers.forEach(layer => {
-                layer.update();
+            // Add camera interaction
+            this._controls = new EarthControls$1(this._camera, this._renderer.domElement, {
+                maxZoom: this._maxLevel,
+                minZoom: this._minLevel,
+                zoom: this._zoomLevel,
+                radius: this._radius
             });
 
-            _this._controls.update();
-            _this._universe.update(_this._controls);
-            _this._renderer.render(_this._scene, _this._camera);
+            // Add earth sphere
+            this._earth = new Mesh();
+            this._earth.geometry = new SphereGeometry(this._radius * 0.97, 100, 100);
+            this._earth.material = new MeshBasicMaterial({
+                color: 0x555555
+            });
+            this._earth.renderOrder = 20;
+            this._scene.add(this._earth);
 
-            requestAnimationFrame(animate);
-        });
-    }
+            var _this = this;
+            // Kick-off renderer
+            this._rafId = requestAnimationFrame(function animate() {
+                // Frame cycle
+                _this._layers.forEach(function (layer) {
+                    layer.update();
+                });
 
-    _updateEarthSize(eSize) {
-        this.width = eSize['width'];
-        this.height = eSize['height'];
+                _this._controls.update();
+                _this._universe.update(_this._controls);
+                _this._renderer.render(_this._scene, _this._camera);
 
-        this._renderer.setSize(this.width, this.height);
-        this._camera.aspect = this.width / this.height;
-        this._camera.updateProjectionMatrix();
-        this._controls.handleResize();
-
-        return this;
-    }
-
-    _getContainerDomSize() {
-        if (!this._containerDOM) {
-            return null;
+                requestAnimationFrame(animate);
+            });
         }
-        const containerDOM = this._containerDOM;
-        let width, height;
-        if (containerDOM.width && containerDOM.height) {
-            width = containerDOM.width;
-            height = containerDOM.height;
-            if (Browser$1.retina) {
-                width /= 2;
-                height /= 2;
-            }
-        } else if (containerDOM.clientWidth && containerDOM.clientHeight) {
-            width = parseInt(containerDOM.clientWidth, 0);
-            height = parseInt(containerDOM.clientHeight, 0);
-        } else {
-            throw new Error('can not get size of container');
-        }
-        return new Size(width, height);
-    }
+    }, {
+        key: '_updateEarthSize',
+        value: function _updateEarthSize(eSize) {
+            this.width = eSize['width'];
+            this.height = eSize['height'];
 
-    /**
-     * Add a new layer on the top of the earth.
-     * @param  {Layer|Layer[]} layer - one or more layers to add
-     * @return {Earth} this
-     */
-    addLayer(layers) {
-        if (!layers) {
+            this._renderer.setSize(this.width, this.height);
+            this._camera.aspect = this.width / this.height;
+            this._camera.updateProjectionMatrix();
+            this._controls.handleResize();
+
             return this;
         }
-        if (!Array.isArray(layers)) {
-            return this.addLayer([layers]);
-        }
-        if (!this._layerCache) {
-            this._layerCache = {};
-        }
-
-        for (let i = 0, len = layers.length; i < len; i++) {
-            const layer = layers[i];
-            const id = layer.getId();
-            if (!id) {
-                throw new Error('Invalid id for the layer: ' + id);
+    }, {
+        key: '_getContainerDomSize',
+        value: function _getContainerDomSize() {
+            if (!this._containerDOM) {
+                return null;
             }
-            if (layer.getEarth() === this) {
-                continue;
+            var containerDOM = this._containerDOM;
+            var width = void 0,
+                height = void 0;
+            if (containerDOM.width && containerDOM.height) {
+                width = containerDOM.width;
+                height = containerDOM.height;
+                if (Browser$1.retina) {
+                    width /= 2;
+                    height /= 2;
+                }
+            } else if (containerDOM.clientWidth && containerDOM.clientHeight) {
+                width = parseInt(containerDOM.clientWidth, 0);
+                height = parseInt(containerDOM.clientHeight, 0);
+            } else {
+                throw new Error('can not get size of container');
             }
-            if (this._layerCache[id]) {
-                throw new Error('Duplicate layer id in the earth: ' + id);
-            }
-            this._layerCache[id] = layer;
-            layer._bindEarth(this, this._layers.length);
-            this._layers.push(layer);
-            if (this._loaded) {
-                layer.load();
-            }
+            return new Size(width, height);
         }
 
-        return this;
-    }
+        /**
+         * Add a new layer on the top of the earth.
+         * @param  {Layer|Layer[]} layer - one or more layers to add
+         * @return {Earth} this
+         */
 
-    /**
-     * Remove a layer from the earth
-     * @param  {String|String[]|Layer|Layer[]} layer - one or more layers or layer ids
-     * @return {Earth} this
-     * @fires Earth#removelayer
-     */
-    removeLayer(layers) {
-        if (!layers) {
+    }, {
+        key: 'addLayer',
+        value: function addLayer(layers) {
+            if (!layers) {
+                return this;
+            }
+            if (!Array.isArray(layers)) {
+                return this.addLayer([layers]);
+            }
+            if (!this._layerCache) {
+                this._layerCache = {};
+            }
+
+            for (var i = 0, len = layers.length; i < len; i++) {
+                var layer = layers[i];
+                var id = layer.getId();
+                if (!id) {
+                    throw new Error('Invalid id for the layer: ' + id);
+                }
+                if (layer.getEarth() === this) {
+                    continue;
+                }
+                if (this._layerCache[id]) {
+                    throw new Error('Duplicate layer id in the earth: ' + id);
+                }
+                this._layerCache[id] = layer;
+                layer._bindEarth(this, this._layers.length);
+                this._layers.push(layer);
+                if (this._loaded) {
+                    layer.load();
+                }
+            }
+
             return this;
         }
-        if (!Array.isArray(layers)) {
-            return this.removeLayer([layers]);
+
+        /**
+         * Remove a layer from the earth
+         * @param  {String|String[]|Layer|Layer[]} layer - one or more layers or layer ids
+         * @return {Earth} this
+         * @fires Earth#removelayer
+         */
+
+    }, {
+        key: 'removeLayer',
+        value: function removeLayer(layers) {
+            if (!layers) {
+                return this;
+            }
+            if (!Array.isArray(layers)) {
+                return this.removeLayer([layers]);
+            }
+            var removed = [];
+            for (var i = 0, len = layers.length; i < len; i++) {
+                var layer = layers[i];
+                if (!(layer instanceof Layer)) {
+                    layer = this.getLayer(layer);
+                }
+                if (!layer) {
+                    continue;
+                }
+                var earth = layer.getEarth();
+                if (!earth || earth !== this) {
+                    continue;
+                }
+                removed.push(layer);
+                // todo
+                // this._removeLayer(layer, this._layers);
+                // if (this._loaded) {
+                //     layer._doRemove();
+                // }
+                var id = layer.getId();
+                if (this._layerCache) {
+                    delete this._layerCache[id];
+                }
+            }
+
+            return this;
         }
-        const removed = [];
-        for (let i = 0, len = layers.length; i < len; i++) {
-            let layer = layers[i];
-            if (!(layer instanceof Layer)) {
-                layer = this.getLayer(layer);
-            }
-            if (!layer) {
-                continue;
-            }
-            const earth = layer.getEarth();
-            if (!earth || earth !== this) {
-                continue;
-            }
-            removed.push(layer);
-            // todo
-            // this._removeLayer(layer, this._layers);
-            // if (this._loaded) {
-            //     layer._doRemove();
+    }, {
+        key: '_load',
+        value: function _load() {
+            // this._resetMapStatus();
+            // if (this.options['pitch']) {
+            //     this.setPitch(this.options['pitch']);
+            //     delete this.options['pitch'];
             // }
-            const id = layer.getId();
-            if (this._layerCache) {
-                delete this._layerCache[id];
-            }
+            // if (this.options['bearing']) {
+            //     this.setBearing(this.options['bearing']);
+            //     delete this.options['bearing'];
+            // }
+            this._layers.forEach(function (layer) {
+                return layer.load();
+            });
+            this._loaded = true;
         }
-
-        return this;
-    }
-
-    _load() {
-        // this._resetMapStatus();
-        // if (this.options['pitch']) {
-        //     this.setPitch(this.options['pitch']);
-        //     delete this.options['pitch'];
-        // }
-        // if (this.options['bearing']) {
-        //     this.setBearing(this.options['bearing']);
-        //     delete this.options['bearing'];
-        // }
-        this._layers.forEach(layer => layer.load());
-        this._loaded = true;
-    }
-}
+    }]);
+    return Earth;
+}();
 
 Earth.prototype.setBearing = function (bearing) {
     console.log(bearing);
@@ -46259,6 +46382,6 @@ exports.Earth = Earth;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-typeof console !== 'undefined' && console.log('geov 0.0.0');
+typeof console !== 'undefined' && console.log('geov.js 0.0.1');
 
 })));

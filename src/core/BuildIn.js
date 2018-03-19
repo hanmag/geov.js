@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Layer from './Layer';
 
-export function createEasyLayer() {
+export function createEasyLayer(opt) {
     const layer = new Layer('easy-layer');
     layer.load = () => {
         let image = new THREE.Mesh();
@@ -14,11 +14,11 @@ export function createEasyLayer() {
         image.rotation.y = 3;
 
         const loader = new THREE.TextureLoader();
-        loader.load('textures/2_no_clouds_4k.jpg', function (t) {
+        loader.load(opt.baseURL, function (t) {
             t.anisotropy = 16;
             t.wrapS = t.wrapT = THREE.RepeatWrapping;
             image.material.map = t;
-            loader.load('textures/elev_bump_4k.jpg', function (t) {
+            loader.load(opt.bumpURL, function (t) {
                 t.anisotropy = 16;
                 t.wrapS = t.wrapT = THREE.RepeatWrapping;
                 image.material.bumpMap = t;
