@@ -1,4 +1,4 @@
-// Version 0.0.1 geov.js - https://github.com/hanmag/geov.js#readme
+// Version 0.0.2 geov.js - https://github.com/hanmag/geov.js#readme
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -46382,6 +46382,6 @@ exports.Earth = Earth;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-typeof console !== 'undefined' && console.log('geov.js 0.0.1');
+typeof console !== 'undefined' && console.log('geov.js 0.0.2');
 
 })));
