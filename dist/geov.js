@@ -46372,13 +46372,71 @@ var Earth = function () {
     return Earth;
 }();
 
+var PI = 3.141592653589793;
+var PI2 = PI * 2;
+var HALFPI = PI / 2;
+var MAXPHI = 1.2626272556789115; // Math.atan(PI)
+
+var MathUtils = {
+    PI: PI,
+    PI2: PI2,
+    HALFPI: HALFPI,
+    MAXPHI: MAXPHI,
+    numerationSystemTo10: function numerationSystemTo10(numSys, strNum) {
+        var sum = 0;
+        for (var i = 0; i < strNum.length; i++) {
+            var level = strNum.length - 1 - i;
+            var key = parseInt(strNum[i]);
+            sum += key * Math.pow(numSys, level);
+        }
+        return sum;
+    }
+};
+
 Earth.prototype.setBearing = function (bearing) {
     console.log(bearing);
 };
 
-// export { default as Layer } from './core/Layer';
+Earth.prototype.getBearing = function () {
+    return Math.round(this._controls.bearing * 1e2) / 1e2;
+};
+
+Earth.prototype.setPitch = function (bearing) {};
+
+Earth.prototype.getPitch = function () {
+    return Math.round(this._controls.pitch * 1e2) / 1e2;
+};
+
+Earth.prototype.setZoom = function (bearing) {};
+
+Earth.prototype.getZoom = function () {
+    return Math.round((this._controls.maxZoom - this._controls.zoom) * 1e1) / 1e1;
+};
+
+Earth.prototype.setRadian = function (bearing) {};
+
+Earth.prototype.getRadian = function () {
+    var coord = this._controls.coord.clone();
+    coord.x += MathUtils.HALFPI;
+    return coord;
+};
+
+var GeoUtils = {
+    // 经纬度坐标 转成 球面坐标
+    geoToSphere: function geoToSphere(earthRadius, coordinates) {
+        var x = coordinates[0] / 180 * MathUtils.PI + MathUtils.HALFPI;
+        if (x > MathUtils.PI) x = -MathUtils.PI2 + x;
+        var y = (90 - coordinates[1]) / 180 * MathUtils.PI;
+        var spherical = new Spherical(earthRadius, y, x);
+        spherical.makeSafe();
+        return new Vector3().setFromSpherical(spherical);
+    }
+};
 
 exports.Earth = Earth;
+exports.Layer = Layer;
+exports.MathUtils = MathUtils;
+exports.GeoUtils = GeoUtils;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
