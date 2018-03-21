@@ -6,6 +6,12 @@ import pkg from './package.json';
 
 export default {
     input: 'src/main.js',
+    globals: {
+        three: 'THREE'
+    },
+    external: [
+        'three'
+    ],
     output: [{
         format: 'umd',
         name: `geov`,
@@ -21,7 +27,7 @@ export default {
             sourceMap: false
         }),
         babel({
-            exclude: 'node_modules/**',
+            exclude: 'node_modules/**'
         })
     ],
     banner: `// Version ${pkg.version} ${pkg.name} - ${pkg.homepage}`,
