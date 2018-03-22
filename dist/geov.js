@@ -156,12 +156,12 @@ var EarthControls = EarthControls = function (object, domElement, options) {
     }());
 
     var getRotateOffset = function (delta) {
-        var speed = Math.pow(2, _this.zoom - 1) * _this.rotateSpeed * 0.0001;
+        var speed = Math.pow(1.834, _this.zoom) * _this.rotateSpeed * 0.00027;
         return delta.clone().rotateAround(new THREE.Vector2(0, 0), -_this.bearing).multiplyScalar(speed);
     };
 
     var getEyeVector = function (target) {
-        var zoomDistance = Math.pow(1.71, _this.zoom - 1) * _this.earthRadius * 0.0001;
+        var zoomDistance = Math.pow(1.745, _this.zoom) * _this.earthRadius * 0.000036;
         var origin = new THREE.Vector3().setFromSpherical(target);
         target.phi -= EPS;
         var normal = new THREE.Vector3().setFromSpherical(target).sub(origin).normalize();
@@ -824,9 +824,9 @@ var Universe = function () {
 
     createClass(Universe, [{
         key: 'update',
-        value: function update(controls) {
+        value: function update() {
             if (this.atmosphere) {
-                var _opacity = (controls.zoom - 13) * 0.09;
+                var _opacity = (6 - this.earth.getZoom()) * 0.08;
                 if (_opacity < 0.1 && this.atmosphere.material.opacity >= 0.1) {
                     this._comps.remove(this.atmosphere);
                 } else if (_opacity >= 0.1 && this.atmosphere.material.opacity < 0.1) {
@@ -1011,8 +1011,8 @@ var Earth = function () {
         }
 
         var zoom = options['zoom'] ? options['zoom'] : 1;
-        var maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
-        var minZoom = options['minZoom'] ? options['minZoom'] : 1;
+        var maxZoom = options['maxZoom'] ? options['maxZoom'] : 18;
+        var minZoom = options['minZoom'] ? options['minZoom'] : 0;
         var center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         var layers = options['layers'];
         var easyLayer = options['easyLayer'];
@@ -1021,10 +1021,10 @@ var Earth = function () {
         this._loaded = false;
 
         this._layers = [];
-        this._zoomLevel = maxZoom - zoom;
+        this._initLevel = maxZoom - zoom;
         this._maxLevel = maxZoom;
         this._minLevel = minZoom;
-        this._center = center;
+        this._center = center; //todo
 
         this._initContainer(container);
         this._initRenderer();
@@ -1110,9 +1110,9 @@ var Earth = function () {
 
             // Add camera interaction
             this._controls = new EarthControls$1(this._camera, this._renderer.domElement, {
-                maxZoom: this._maxLevel,
-                minZoom: this._minLevel,
-                zoom: this._zoomLevel,
+                maxZoom: this._maxLevel + 1,
+                minZoom: this._minLevel + 1,
+                zoom: this._initLevel,
                 radius: this._radius
             });
 
@@ -1134,7 +1134,7 @@ var Earth = function () {
                 });
 
                 _this._controls.update();
-                _this._universe.update(_this._controls);
+                _this._universe.update();
                 _this._renderer.render(_this._scene, _this._camera);
 
                 requestAnimationFrame(animate);

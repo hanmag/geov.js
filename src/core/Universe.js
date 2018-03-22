@@ -62,9 +62,9 @@ class Universe {
         this.earth._scene.add(this._comps);
     }
 
-    update(controls) {
+    update() {
         if (this.atmosphere) {
-            const _opacity = (controls.zoom - 13) * 0.09;
+            const _opacity = (6 - this.earth.getZoom()) * 0.08;
             if (_opacity < 0.1 && this.atmosphere.material.opacity >= 0.1) {
                 this._comps.remove(this.atmosphere);
             } else if (_opacity >= 0.1 && this.atmosphere.material.opacity < 0.1) {

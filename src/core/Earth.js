@@ -30,8 +30,8 @@ class Earth {
         }
 
         const zoom = options['zoom'] ? options['zoom'] : 1;
-        const maxZoom = options['maxZoom'] ? options['maxZoom'] : 19;
-        const minZoom = options['minZoom'] ? options['minZoom'] : 1;
+        const maxZoom = options['maxZoom'] ? options['maxZoom'] : 18;
+        const minZoom = options['minZoom'] ? options['minZoom'] : 0;
         const center = new Coordinate(options['center'] ? options['center'] : [100, 30]);
         const layers = options['layers'];
         const easyLayer = options['easyLayer'];
@@ -40,10 +40,10 @@ class Earth {
         this._loaded = false;
 
         this._layers = [];
-        this._zoomLevel = maxZoom - zoom;
+        this._initLevel = maxZoom - zoom;
         this._maxLevel = maxZoom;
         this._minLevel = minZoom;
-        this._center = center;
+        this._center = center; //todo
 
         this._initContainer(container);
         this._initRenderer();
@@ -126,9 +126,9 @@ class Earth {
 
         // Add camera interaction
         this._controls = new EarthControls(this._camera, this._renderer.domElement, {
-            maxZoom: this._maxLevel,
-            minZoom: this._minLevel,
-            zoom: this._zoomLevel,
+            maxZoom: this._maxLevel + 1,
+            minZoom: this._minLevel + 1,
+            zoom: this._initLevel,
             radius: this._radius
         });
 
@@ -150,7 +150,7 @@ class Earth {
             });
 
             _this._controls.update();
-            _this._universe.update(_this._controls);
+            _this._universe.update();
             _this._renderer.render(_this._scene, _this._camera);
 
             requestAnimationFrame(animate);
