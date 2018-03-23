@@ -758,7 +758,29 @@ var Browser$1 = Browser;
 
 var auroraVertexShaderSource = "varying vec3 vNormal;void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}";
 
-var auroraFragmentShaderSource = "varying vec3 vNormal;void main(){float intensity=pow(1.32-dot(vNormal,vec3(0,0,1.0)),8.0);if(intensity>12.0)intensity=intensity*0.06;else if(intensity>3.0)intensity=9.0/intensity;gl_FragColor=vec4(0.3,0.5,1.0,0.3)*intensity;}";
+var auroraFragmentShaderSource = "varying vec3 vNormal;void main(){float intensity=pow(1.32-dot(vNormal,vec3(0,0,1.0)),8.0);if(intensity>12.0)intensity=intensity*0.06;else if(intensity>3.0)intensity=9.0/intensity;gl_FragColor=vec4(0.4,0.5,1.0,0.3)*intensity;}";
+
+var starsVertexShaderSource = "attribute float size;varying vec3 vColor;void main(){vColor=color;vec4 mvPosition=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(1.0+50000000.0/length(mvPosition.xyz));if(length(mvPosition.xyz)<100000.0)gl_PointSize=0.0;gl_Position=projectionMatrix*mvPosition;}";
+
+var starsFragmentShaderSource = "uniform sampler2D texture;varying vec3 vColor;void main(){gl_FragColor=vec4(vColor,1.0);gl_FragColor=gl_FragColor*texture2D(texture,gl_PointCoord);}";
+
+var img = new Image();img.src = 'data:image/png;base64,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';
+
+var sparkTexture = new THREE.Texture(img);
+sparkTexture.needsUpdate = true;
+var starsMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        texture: {
+            value: sparkTexture
+        }
+    },
+    vertexShader: starsVertexShaderSource,
+    fragmentShader: starsFragmentShaderSource,
+    blending: THREE.AdditiveBlending,
+    depthTest: true,
+    transparent: true,
+    vertexColors: true
+});
 
 var Universe = function () {
     function Universe(opt) {
@@ -770,21 +792,36 @@ var Universe = function () {
 
         this.earth = opt.earth;
         this._comps = new THREE.Group();
+        this._radius = this.earth._radius;
         var _this = this;
 
-        if (opt.galaxyURL) {
-            _this.galaxy = new THREE.Mesh();
-            _this.galaxy.geometry = new THREE.SphereGeometry(_this.earth._radius * 10, 20, 20);
-            _this.galaxy.material = new THREE.MeshBasicMaterial({
-                side: THREE.BackSide
-            });
+        if (opt.galaxy) {
+            // stars
+            var starsGeometry = new THREE.BufferGeometry();
+            var positions = [];
+            var colors = [];
+            var sizes = [];
+            var particles = 50000;
+            for (var i = 0; i < particles; i++) {
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                var random = Math.random() * 0.8;
+                colors.push(random, random, random);
+                sizes.push(10);
+            }
+            starsGeometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            starsGeometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            starsGeometry.addAttribute('size', new THREE.Float32BufferAttribute(sizes, 1).setDynamic(true));
 
-            new THREE.TextureLoader().load(opt.galaxyURL, function (t) {
-                t.anisotropy = 16;
-                t.wrapS = t.wrapT = THREE.RepeatWrapping;
-                _this.galaxy.material.map = t;
-                _this._comps.add(_this.galaxy);
-            });
+            var stars = new THREE.Points(starsGeometry, starsMaterial);
+            stars.rotation.x = Math.random() * 6;
+            stars.rotation.y = Math.random() * 6;
+            stars.rotation.z = Math.random() * 6;
+            stars.scale.setScalar(200);
+            stars.matrixAutoUpdate = false;
+            stars.updateMatrix();
+            _this._comps.add(stars);
         }
 
         if (opt.atmosphereURL) {
@@ -809,7 +846,6 @@ var Universe = function () {
             _this.aurora = new THREE.Mesh();
             _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 130, 130);
             _this.aurora.material = new THREE.ShaderMaterial({
-                uniforms: {},
                 vertexShader: auroraVertexShaderSource,
                 fragmentShader: auroraFragmentShaderSource,
                 side: THREE.BackSide,
@@ -1032,7 +1068,7 @@ var Earth = function () {
 
         this._universe = new Universe({
             earth: this,
-            galaxyURL: options['galaxy'],
+            galaxy: options['galaxy'],
             atmosphereURL: options['atmosphere'],
             aurora: options['aurora']
         });

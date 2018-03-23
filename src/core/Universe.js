@@ -1,6 +1,25 @@
 import * as THREE from 'three';
 import auroraVertexShaderSource from '../shaders/aurora.vertex.glsl';
 import auroraFragmentShaderSource from '../shaders/aurora.fragment.glsl';
+import starsVertexShaderSource from '../shaders/stars.vertex.glsl';
+import starsFragmentShaderSource from '../shaders/stars.fragment.glsl';
+import sparkImage from '../textures/spark1.png';
+
+const sparkTexture = new THREE.Texture(sparkImage);
+sparkTexture.needsUpdate = true;
+const starsMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        texture: {
+            value: sparkTexture
+        }
+    },
+    vertexShader: starsVertexShaderSource,
+    fragmentShader: starsFragmentShaderSource,
+    blending: THREE.AdditiveBlending,
+    depthTest: true,
+    transparent: true,
+    vertexColors: true
+});
 
 class Universe {
     constructor(opt) {
@@ -10,21 +29,36 @@ class Universe {
 
         this.earth = opt.earth;
         this._comps = new THREE.Group();
+        this._radius = this.earth._radius;
         let _this = this;
 
-        if (opt.galaxyURL) {
-            _this.galaxy = new THREE.Mesh();
-            _this.galaxy.geometry = new THREE.SphereGeometry(_this.earth._radius * 10, 20, 20);
-            _this.galaxy.material = new THREE.MeshBasicMaterial({
-                side: THREE.BackSide
-            });
+        if (opt.galaxy) {
+            // stars
+            const starsGeometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const sizes = [];
+            const particles = 50000;
+            for (var i = 0; i < particles; i++) {
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * this._radius);
+                const random = Math.random() * 0.8;
+                colors.push(random, random, random);
+                sizes.push(10);
+            }
+            starsGeometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            starsGeometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            starsGeometry.addAttribute('size', new THREE.Float32BufferAttribute(sizes, 1).setDynamic(true));
 
-            new THREE.TextureLoader().load(opt.galaxyURL, function (t) {
-                t.anisotropy = 16;
-                t.wrapS = t.wrapT = THREE.RepeatWrapping;
-                _this.galaxy.material.map = t;
-                _this._comps.add(_this.galaxy);
-            });
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            stars.rotation.x = Math.random() * 6;
+            stars.rotation.y = Math.random() * 6;
+            stars.rotation.z = Math.random() * 6;
+            stars.scale.setScalar(200);
+            stars.matrixAutoUpdate = false;
+            stars.updateMatrix();
+            _this._comps.add(stars);
         }
 
         if (opt.atmosphereURL) {
@@ -49,7 +83,6 @@ class Universe {
             _this.aurora = new THREE.Mesh();
             _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 130, 130);
             _this.aurora.material = new THREE.ShaderMaterial({
-                uniforms: {},
                 vertexShader: auroraVertexShaderSource,
                 fragmentShader: auroraFragmentShaderSource,
                 side: THREE.BackSide,

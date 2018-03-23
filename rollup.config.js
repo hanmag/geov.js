@@ -1,6 +1,7 @@
 import postCss from 'rollup-plugin-postcss';
 import resolve from 'rollup-plugin-node-resolve';
 import glsl from 'rollup-plugin-glsl';
+import image from 'rollup-plugin-image';
 import babel from 'rollup-plugin-babel'
 import pkg from './package.json';
 
@@ -25,6 +26,9 @@ export default {
         glsl({
             include: 'src/shaders/*.glsl',
             sourceMap: false
+        }),
+        image({
+            include: 'src/textures/*.png'
         }),
         babel({
             exclude: 'node_modules/**'

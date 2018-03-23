@@ -51,7 +51,7 @@ class Earth {
 
         this._universe = new Universe({
             earth: this,
-            galaxyURL: options['galaxy'],
+            galaxy: options['galaxy'],
             atmosphereURL: options['atmosphere'],
             aurora: options['aurora']
         });
