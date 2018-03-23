@@ -1068,9 +1068,9 @@ var Earth = function () {
 
         this._universe = new Universe({
             earth: this,
-            galaxy: options['galaxy'],
+            galaxy: options['galaxy'] == undefined ? true : options['galaxy'],
             atmosphereURL: options['atmosphere'],
-            aurora: options['aurora']
+            aurora: options['aurora'] == undefined ? true : options['aurora']
         });
 
         if (easyLayer) {
