@@ -1021,7 +1021,7 @@ var Earth = function () {
         this._loaded = false;
 
         this._layers = [];
-        this._initLevel = maxZoom - zoom;
+        this._initLevel = zoom;
         this._maxLevel = maxZoom;
         this._minLevel = minZoom;
         this._center = center; //todo
@@ -1032,9 +1032,9 @@ var Earth = function () {
 
         this._universe = new Universe({
             earth: this,
-            galaxyURL: options['galaxy'] != undefined ? options['galaxy'] : 'textures/galaxy_starfield.png',
-            atmosphereURL: options['atmosphere'] != undefined ? options['atmosphere'] : 'textures/fair_clouds_4k.png',
-            aurora: options['aurora'] != undefined ? options['aurora'] : true
+            galaxyURL: options['galaxy'],
+            atmosphereURL: options['atmosphere'],
+            aurora: options['aurora']
         });
 
         if (easyLayer) {
@@ -1081,6 +1081,8 @@ var Earth = function () {
     }, {
         key: '_initRenderer',
         value: function _initRenderer() {
+            var _this2 = this;
+
             if (this._rafId) {
                 cancelAnimationFrame(this._rafId);
                 this._rafId = null;
@@ -1101,7 +1103,7 @@ var Earth = function () {
 
             // Setup camera
             this._camera = new THREE.PerspectiveCamera();
-            this._camera.near = Unit * 0.1;
+            this._camera.near = Unit;
             this._camera.far = this._radius * 100;
 
             // Add lights
@@ -1110,10 +1112,16 @@ var Earth = function () {
 
             // Add camera interaction
             this._controls = new EarthControls$1(this._camera, this._renderer.domElement, {
-                maxZoom: this._maxLevel + 1,
-                minZoom: this._minLevel + 1,
-                zoom: this._initLevel,
+                maxZoom: 20,
+                minZoom: 2,
+                zoom: this._maxLevel - this._initLevel + 1,
                 radius: this._radius
+            });
+            this._controls.zoomSpeed = 0.2;
+            this._controls.rotateSpeed = 0.8;
+            this._controls.addEventListener('change', function () {
+                _this2._camera.near = Unit * _this2._controls.zoom / _this2._controls.maxZoom;
+                _this2._camera.updateProjectionMatrix();
             });
 
             // Add earth sphere
@@ -1322,7 +1330,8 @@ Earth.prototype.getPitch = function () {
 Earth.prototype.setZoom = function (bearing) {};
 
 Earth.prototype.getZoom = function () {
-    return Math.round((this._controls.maxZoom - this._controls.zoom) * 1e1) / 1e1;
+    var delta = Math.round((this._controls.maxZoom - this._controls.zoom) * 1e1) / 1e1;
+    return delta < 2 ? 0 : delta - 1;
 };
 
 Earth.prototype.setRadian = function (bearing) {};

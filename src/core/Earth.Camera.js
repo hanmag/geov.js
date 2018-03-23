@@ -18,7 +18,8 @@ Earth.prototype.getPitch = function () {
 Earth.prototype.setZoom = function (bearing) {}
 
 Earth.prototype.getZoom = function () {
-    return Math.round((this._controls.maxZoom - this._controls.zoom) * 1e1) / 1e1;
+    const delta = Math.round((this._controls.maxZoom - this._controls.zoom) * 1e1) / 1e1;
+    return delta < 2 ? 0 : delta - 1;
 }
 
 Earth.prototype.setRadian = function (bearing) {}

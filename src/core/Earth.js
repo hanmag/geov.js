@@ -40,7 +40,7 @@ class Earth {
         this._loaded = false;
 
         this._layers = [];
-        this._initLevel = maxZoom - zoom;
+        this._initLevel = zoom;
         this._maxLevel = maxZoom;
         this._minLevel = minZoom;
         this._center = center; //todo
@@ -51,9 +51,9 @@ class Earth {
 
         this._universe = new Universe({
             earth: this,
-            galaxyURL: options['galaxy'] != undefined ? options['galaxy'] : 'textures/galaxy_starfield.png',
-            atmosphereURL: options['atmosphere'] != undefined ? options['atmosphere'] : 'textures/fair_clouds_4k.png',
-            aurora: options['aurora'] != undefined ? options['aurora'] : true
+            galaxyURL: options['galaxy'],
+            atmosphereURL: options['atmosphere'],
+            aurora: options['aurora']
         });
 
         if (easyLayer) {
@@ -117,7 +117,7 @@ class Earth {
 
         // Setup camera
         this._camera = new THREE.PerspectiveCamera();
-        this._camera.near = Unit * 0.1;
+        this._camera.near = Unit;
         this._camera.far = this._radius * 100;
 
         // Add lights
@@ -126,10 +126,16 @@ class Earth {
 
         // Add camera interaction
         this._controls = new EarthControls(this._camera, this._renderer.domElement, {
-            maxZoom: this._maxLevel + 1,
-            minZoom: this._minLevel + 1,
-            zoom: this._initLevel,
+            maxZoom: 20,
+            minZoom: 2,
+            zoom: this._maxLevel - this._initLevel + 1,
             radius: this._radius
+        });
+        this._controls.zoomSpeed = 0.2;
+        this._controls.rotateSpeed = 0.8;
+        this._controls.addEventListener('change', () => {
+            this._camera.near = Unit * this._controls.zoom / this._controls.maxZoom;
+            this._camera.updateProjectionMatrix();
         });
 
         // Add earth sphere
