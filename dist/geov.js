@@ -760,7 +760,7 @@ var auroraVertexShaderSource = "varying vec3 vNormal;void main(){vNormal=normali
 
 var auroraFragmentShaderSource = "varying vec3 vNormal;void main(){float intensity=pow(1.32-dot(vNormal,vec3(0,0,1.0)),8.0);if(intensity>12.0)intensity=intensity*0.06;else if(intensity>3.0)intensity=9.0/intensity;gl_FragColor=vec4(0.4,0.5,1.0,0.3)*intensity;}";
 
-var starsVertexShaderSource = "attribute float size;varying vec3 vColor;void main(){vColor=color;vec4 mvPosition=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(1.0+50000000.0/length(mvPosition.xyz));if(length(mvPosition.xyz)<100000.0)gl_PointSize=0.0;gl_Position=projectionMatrix*mvPosition;}";
+var starsVertexShaderSource = "attribute float size;varying vec3 vColor;void main(){vColor=color;vec4 mvPosition=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(1.0+50000000.0/length(mvPosition.xyz));if(length(mvPosition.xyz)<20000000.0)gl_PointSize=0.0;gl_Position=projectionMatrix*mvPosition;}";
 
 var starsFragmentShaderSource = "uniform sampler2D texture;varying vec3 vColor;void main(){gl_FragColor=vec4(vColor,1.0);gl_FragColor=gl_FragColor*texture2D(texture,gl_PointCoord);}";
 
@@ -806,7 +806,7 @@ var Universe = function () {
                 positions.push((Math.random() * 2 - 1) * this._radius);
                 positions.push((Math.random() * 2 - 1) * this._radius);
                 positions.push((Math.random() * 2 - 1) * this._radius);
-                var random = Math.random() * 0.8;
+                var random = Math.random() * 0.6;
                 colors.push(random, random, random);
                 sizes.push(10);
             }

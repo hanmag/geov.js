@@ -43,7 +43,7 @@ class Universe {
                 positions.push((Math.random() * 2 - 1) * this._radius);
                 positions.push((Math.random() * 2 - 1) * this._radius);
                 positions.push((Math.random() * 2 - 1) * this._radius);
-                const random = Math.random() * 0.8;
+                const random = Math.random() * 0.6;
                 colors.push(random, random, random);
                 sizes.push(10);
             }
