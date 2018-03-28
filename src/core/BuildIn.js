@@ -3,7 +3,7 @@ import Layer from './Layer';
 
 export function createEasyLayer(opt) {
     const layer = new Layer('easy-layer');
-    layer.load = () => {
+    layer._load = () => {
         let image = new THREE.Mesh();
         image.geometry = new THREE.SphereGeometry(layer.earth._radius, 120, 120);
         image.material = new THREE.MeshPhongMaterial({

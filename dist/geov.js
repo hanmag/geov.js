@@ -1001,7 +1001,7 @@ var Layer = function () {
 
 function createEasyLayer(opt) {
     var layer = new Layer('easy-layer');
-    layer.load = function () {
+    layer._load = function () {
         var image = new THREE.Mesh();
         image.geometry = new THREE.SphereGeometry(layer.earth._radius, 120, 120);
         image.material = new THREE.MeshPhongMaterial({
