@@ -1,7 +1,11 @@
 import MathUtils from './MathUtils';
 import * as THREE from 'three';
 
+const Unit = 100;
+const Radius = 6371;
 export default {
+    Unit: Unit,
+    EarthRadius: Radius * Unit,
     // 经纬度坐标 转成 球面坐标
     geoToSphere: function (earthRadius, coordinates) {
         let x = coordinates[0] / 180 * MathUtils.PI + MathUtils.HALFPI;

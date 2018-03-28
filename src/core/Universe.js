@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import GeoUtils from '../util/GeoUtils';
 import auroraVertexShaderSource from '../shaders/aurora.vertex.glsl';
 import auroraFragmentShaderSource from '../shaders/aurora.fragment.glsl';
 import starsVertexShaderSource from '../shaders/stars.vertex.glsl';
@@ -29,7 +30,6 @@ class Universe {
 
         this.earth = opt.earth;
         this._comps = new THREE.Group();
-        this._radius = this.earth._radius;
         let _this = this;
 
         if (opt.galaxy) {
@@ -40,9 +40,9 @@ class Universe {
             const sizes = [];
             const particles = 50000;
             for (var i = 0; i < particles; i++) {
-                positions.push((Math.random() * 2 - 1) * this._radius);
-                positions.push((Math.random() * 2 - 1) * this._radius);
-                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
                 const random = Math.random() * 0.6;
                 colors.push(random, random, random);
                 sizes.push(10);
@@ -63,7 +63,7 @@ class Universe {
 
         if (opt.atmosphereURL) {
             _this.atmosphere = new THREE.Mesh();
-            _this.atmosphere.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.032, 50, 50);
+            _this.atmosphere.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
             _this.atmosphere.material = new THREE.MeshPhongMaterial({
                 transparent: true
@@ -81,7 +81,7 @@ class Universe {
 
         if (opt.aurora) {
             _this.aurora = new THREE.Mesh();
-            _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 130, 130);
+            _this.aurora.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 1.036, 130, 130);
             _this.aurora.material = new THREE.ShaderMaterial({
                 vertexShader: auroraVertexShaderSource,
                 fragmentShader: auroraFragmentShaderSource,

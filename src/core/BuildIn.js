@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import Layer from './Layer';
+import GeoUtils from '../util/GeoUtils';
 
 export function createEasyLayer(opt) {
     const layer = new Layer('easy-layer');
     layer._load = () => {
         let image = new THREE.Mesh();
-        image.geometry = new THREE.SphereGeometry(layer.earth._radius, 120, 120);
+        image.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius, 120, 120);
         image.material = new THREE.MeshPhongMaterial({
             bumpScale: 0.5,
             specular: new THREE.Color('grey'),

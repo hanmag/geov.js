@@ -3,6 +3,7 @@ import EarthControls from 'earth-camera-controls';
 import {
     isString
 } from '../util/common';
+import GeoUtils from '../util/GeoUtils';
 import Size from '../geo/Size';
 import Coordinate from '../geo/Coordinate';
 import Browser from './Browser';
@@ -11,9 +12,6 @@ import Layer from './Layer';
 import {
     createEasyLayer
 } from './BuildIn';
-
-const Unit = 100;
-const EarthRadius = 6371 * Unit;
 
 /*!
  * contains code from maptalks.js
@@ -36,7 +34,6 @@ class Earth {
         const layers = options['layers'];
         const easyLayer = options['easyLayer'];
 
-        this._radius = EarthRadius;
         this._loaded = false;
 
         this._layers = [];
@@ -117,11 +114,11 @@ class Earth {
 
         // Setup camera
         this._camera = new THREE.PerspectiveCamera();
-        this._camera.near = Unit;
-        this._camera.far = this._radius * 100;
+        this._camera.near = GeoUtils.Unit;
+        this._camera.far = GeoUtils.EarthRadius * 100;
 
         // Add lights
-        this._camera.add(new THREE.PointLight(0xffffff, 1, this._radius));
+        this._camera.add(new THREE.PointLight(0xffffff, 1, GeoUtils.EarthRadius));
         this._scene.add(new THREE.AmbientLight(0xcccccc));
 
         // Add camera interaction
@@ -129,18 +126,18 @@ class Earth {
             maxZoom: 20,
             minZoom: 2,
             zoom: this._maxLevel - this._initLevel + 1,
-            radius: this._radius
+            radius: GeoUtils.EarthRadius
         });
         this._controls.zoomSpeed = 0.2;
         this._controls.rotateSpeed = 0.8;
         this._controls.addEventListener('change', () => {
-            this._camera.near = Unit * this._controls.zoom / this._controls.maxZoom;
+            this._camera.near = GeoUtils.Unit * this._controls.zoom / this._controls.maxZoom;
             this._camera.updateProjectionMatrix();
         });
 
         // Add earth sphere
         this._earth = new THREE.Mesh();
-        this._earth.geometry = new THREE.SphereGeometry(this._radius * 0.97, 100, 100);
+        this._earth.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 0.97, 100, 100);
         this._earth.material = new THREE.MeshBasicMaterial({
             color: 0x555555
         });

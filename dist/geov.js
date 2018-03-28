@@ -416,6 +416,43 @@ function isNumber(val) {
  * @memberOf Util
  */
 
+var PI = 3.141592653589793;
+var PI2 = PI * 2;
+var HALFPI = PI / 2;
+var MAXPHI = 1.2626272556789115; // Math.atan(PI)
+
+var MathUtils = {
+    PI: PI,
+    PI2: PI2,
+    HALFPI: HALFPI,
+    MAXPHI: MAXPHI,
+    numerationSystemTo10: function numerationSystemTo10(numSys, strNum) {
+        var sum = 0;
+        for (var i = 0; i < strNum.length; i++) {
+            var level = strNum.length - 1 - i;
+            var key = parseInt(strNum[i]);
+            sum += key * Math.pow(numSys, level);
+        }
+        return sum;
+    }
+};
+
+var Unit = 100;
+var Radius = 6371;
+var GeoUtils = {
+    Unit: Unit,
+    EarthRadius: Radius * Unit,
+    // 经纬度坐标 转成 球面坐标
+    geoToSphere: function geoToSphere(earthRadius, coordinates) {
+        var x = coordinates[0] / 180 * MathUtils.PI + MathUtils.HALFPI;
+        if (x > MathUtils.PI) x = -MathUtils.PI2 + x;
+        var y = (90 - coordinates[1]) / 180 * MathUtils.PI;
+        var spherical = new THREE.Spherical(earthRadius, y, x);
+        spherical.makeSafe();
+        return new THREE.Vector3().setFromSpherical(spherical);
+    }
+};
+
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -792,7 +829,6 @@ var Universe = function () {
 
         this.earth = opt.earth;
         this._comps = new THREE.Group();
-        this._radius = this.earth._radius;
         var _this = this;
 
         if (opt.galaxy) {
@@ -803,9 +839,9 @@ var Universe = function () {
             var sizes = [];
             var particles = 50000;
             for (var i = 0; i < particles; i++) {
-                positions.push((Math.random() * 2 - 1) * this._radius);
-                positions.push((Math.random() * 2 - 1) * this._radius);
-                positions.push((Math.random() * 2 - 1) * this._radius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
+                positions.push((Math.random() * 2 - 1) * GeoUtils.EarthRadius);
                 var random = Math.random() * 0.6;
                 colors.push(random, random, random);
                 sizes.push(10);
@@ -826,7 +862,7 @@ var Universe = function () {
 
         if (opt.atmosphereURL) {
             _this.atmosphere = new THREE.Mesh();
-            _this.atmosphere.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.032, 50, 50);
+            _this.atmosphere.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 1.032, 50, 50);
             _this.atmosphere.rotation.y = 3;
             _this.atmosphere.material = new THREE.MeshPhongMaterial({
                 transparent: true
@@ -844,7 +880,7 @@ var Universe = function () {
 
         if (opt.aurora) {
             _this.aurora = new THREE.Mesh();
-            _this.aurora.geometry = new THREE.SphereGeometry(_this.earth._radius * 1.036, 130, 130);
+            _this.aurora.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 1.036, 130, 130);
             _this.aurora.material = new THREE.ShaderMaterial({
                 vertexShader: auroraVertexShaderSource,
                 fragmentShader: auroraFragmentShaderSource,
@@ -1003,7 +1039,7 @@ function createEasyLayer(opt) {
     var layer = new Layer('easy-layer');
     layer._load = function () {
         var image = new THREE.Mesh();
-        image.geometry = new THREE.SphereGeometry(layer.earth._radius, 120, 120);
+        image.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius, 120, 120);
         image.material = new THREE.MeshPhongMaterial({
             bumpScale: 0.5,
             specular: new THREE.Color('grey'),
@@ -1026,9 +1062,6 @@ function createEasyLayer(opt) {
     };
     return layer;
 }
-
-var Unit = 100;
-var EarthRadius = 6371 * Unit;
 
 /*!
  * contains code from maptalks.js
@@ -1053,7 +1086,6 @@ var Earth = function () {
         var layers = options['layers'];
         var easyLayer = options['easyLayer'];
 
-        this._radius = EarthRadius;
         this._loaded = false;
 
         this._layers = [];
@@ -1139,11 +1171,11 @@ var Earth = function () {
 
             // Setup camera
             this._camera = new THREE.PerspectiveCamera();
-            this._camera.near = Unit;
-            this._camera.far = this._radius * 100;
+            this._camera.near = GeoUtils.Unit;
+            this._camera.far = GeoUtils.EarthRadius * 100;
 
             // Add lights
-            this._camera.add(new THREE.PointLight(0xffffff, 1, this._radius));
+            this._camera.add(new THREE.PointLight(0xffffff, 1, GeoUtils.EarthRadius));
             this._scene.add(new THREE.AmbientLight(0xcccccc));
 
             // Add camera interaction
@@ -1151,18 +1183,18 @@ var Earth = function () {
                 maxZoom: 20,
                 minZoom: 2,
                 zoom: this._maxLevel - this._initLevel + 1,
-                radius: this._radius
+                radius: GeoUtils.EarthRadius
             });
             this._controls.zoomSpeed = 0.2;
             this._controls.rotateSpeed = 0.8;
             this._controls.addEventListener('change', function () {
-                _this2._camera.near = Unit * _this2._controls.zoom / _this2._controls.maxZoom;
+                _this2._camera.near = GeoUtils.Unit * _this2._controls.zoom / _this2._controls.maxZoom;
                 _this2._camera.updateProjectionMatrix();
             });
 
             // Add earth sphere
             this._earth = new THREE.Mesh();
-            this._earth.geometry = new THREE.SphereGeometry(this._radius * 0.97, 100, 100);
+            this._earth.geometry = new THREE.SphereGeometry(GeoUtils.EarthRadius * 0.97, 100, 100);
             this._earth.material = new THREE.MeshBasicMaterial({
                 color: 0x555555
             });
@@ -1328,27 +1360,6 @@ var Earth = function () {
     return Earth;
 }();
 
-var PI = 3.141592653589793;
-var PI2 = PI * 2;
-var HALFPI = PI / 2;
-var MAXPHI = 1.2626272556789115; // Math.atan(PI)
-
-var MathUtils = {
-    PI: PI,
-    PI2: PI2,
-    HALFPI: HALFPI,
-    MAXPHI: MAXPHI,
-    numerationSystemTo10: function numerationSystemTo10(numSys, strNum) {
-        var sum = 0;
-        for (var i = 0; i < strNum.length; i++) {
-            var level = strNum.length - 1 - i;
-            var key = parseInt(strNum[i]);
-            sum += key * Math.pow(numSys, level);
-        }
-        return sum;
-    }
-};
-
 Earth.prototype.setBearing = function (bearing) {
     console.log(bearing);
 };
@@ -1376,18 +1387,6 @@ Earth.prototype.getRadian = function () {
     var coord = this._controls.coord.clone();
     coord.x += MathUtils.HALFPI;
     return coord;
-};
-
-var GeoUtils = {
-    // 经纬度坐标 转成 球面坐标
-    geoToSphere: function geoToSphere(earthRadius, coordinates) {
-        var x = coordinates[0] / 180 * MathUtils.PI + MathUtils.HALFPI;
-        if (x > MathUtils.PI) x = -MathUtils.PI2 + x;
-        var y = (90 - coordinates[1]) / 180 * MathUtils.PI;
-        var spherical = new THREE.Spherical(earthRadius, y, x);
-        spherical.makeSafe();
-        return new THREE.Vector3().setFromSpherical(spherical);
-    }
 };
 
 exports.Earth = Earth;
