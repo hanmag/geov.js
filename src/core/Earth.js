@@ -152,7 +152,7 @@ class Earth {
         this._rafId = requestAnimationFrame(function animate() {
             // Frame cycle
             _this._layers.forEach(layer => {
-                layer.update();
+                layer._update();
             });
 
             _this._controls.update();
@@ -229,7 +229,7 @@ class Earth {
             layer._bindEarth(this, this._layers.length);
             this._layers.push(layer);
             if (this._loaded) {
-                layer.load();
+                layer._load();
             }
         }
 
@@ -287,7 +287,7 @@ class Earth {
         //     this.setBearing(this.options['bearing']);
         //     delete this.options['bearing'];
         // }
-        this._layers.forEach(layer => layer.load());
+        this._layers.forEach(layer => layer._load());
         this._loaded = true;
     }
 }

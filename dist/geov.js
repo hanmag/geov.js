@@ -990,11 +990,11 @@ var Layer = function () {
             return null;
         }
     }, {
-        key: 'load',
-        value: function load() {}
+        key: '_load',
+        value: function _load() {}
     }, {
-        key: 'update',
-        value: function update() {}
+        key: '_update',
+        value: function _update() {}
     }]);
     return Layer;
 }();
@@ -1174,7 +1174,7 @@ var Earth = function () {
             this._rafId = requestAnimationFrame(function animate() {
                 // Frame cycle
                 _this._layers.forEach(function (layer) {
-                    layer.update();
+                    layer._update();
                 });
 
                 _this._controls.update();
@@ -1257,7 +1257,7 @@ var Earth = function () {
                 layer._bindEarth(this, this._layers.length);
                 this._layers.push(layer);
                 if (this._loaded) {
-                    layer.load();
+                    layer._load();
                 }
             }
 
@@ -1320,7 +1320,7 @@ var Earth = function () {
             //     delete this.options['bearing'];
             // }
             this._layers.forEach(function (layer) {
-                return layer.load();
+                return layer._load();
             });
             this._loaded = true;
         }

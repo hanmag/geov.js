@@ -86,11 +86,11 @@ class Layer {
         return null;
     }
 
-    load() {
+    _load() {
 
     }
 
-    update() {
+    _update() {
 
     }
 }
